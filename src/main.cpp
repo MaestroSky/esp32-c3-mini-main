@@ -9,6 +9,14 @@
 #include "WakeOnLan.h"
 #include "main.h"
 
+// =========================================================================
+// <<< КРОК 1: Оголошуємо наше нове зображення >>>
+// Переконайтеся, що файл power_icon.c знаходиться у папці 'src'
+// і назва тут збігається з тією, яку ви вказали у конвертері.
+LV_IMG_DECLARE(power_icon);
+// =========================================================================
+
+
 // --- КОНФІГУРАЦІЯ LGFX (без змін) ---
 class LGFX : public lgfx::LGFX_Device {
   lgfx::Panel_GC9A01 _panel_instance;
@@ -69,13 +77,26 @@ void my_touchpad_read(lv_indev_drv_t *indev, lv_indev_data_t *data) {
     }
 }
 
+// =========================================================================
+// <<< ОНОВЛЕНО: Обробник події для кнопки-зображення >>>
+// =========================================================================
 static void btn_event_cb(lv_event_t * e) {
     if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
         send_wol_packet(macAddress);
-        lv_obj_t* label = lv_obj_get_child((lv_obj_t*)lv_event_get_target(e), 0);
-        lv_label_set_text(label, "Packet Sent!");
+        
+        lv_obj_t* btn_img = lv_obj_get_child(lv_event_get_target(e), 0);
+        lv_obj_set_style_img_recolor(btn_img, lv_palette_main(LV_PALETTE_LIGHT_GREEN), 0);
+        
+        // Створюємо таймер з трьома аргументами
+        lv_timer_t* timer = lv_timer_create([](lv_timer_t* t){
+            lv_obj_set_style_img_recolor((lv_obj_t*)t->user_data, lv_color_black(), 0);
+        }, 200, btn_img);
+
+        // Встановлюємо, що таймер має виконатися лише один раз
+        lv_timer_set_repeat_count(timer, 1);
     }
 }
+// =========================================================================
 
 void update_time_task(void *param) {
   struct tm timeinfo;
@@ -89,26 +110,19 @@ void update_time_task(void *param) {
 
 void update_weather() {
     if (WiFi.status() != WL_CONNECTED) return;
-
     HTTPClient http;
     String url = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + api_key + "&units=metric";
     http.begin(url);
     int httpCode = http.GET();
-
     if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
         DynamicJsonDocument doc(1024);
         deserializeJson(doc, payload);
-
         if (!doc.isNull()) {
             const char* city_name = doc["name"];
             float temp = doc["main"]["temp"];
-            
             lv_label_set_text(city_label, city_name);
-            // =========================================================================
-            // <<< ОНОВЛЕНО: Додано символ градуса >>>
             lv_label_set_text(temp_label, (String((int)round(temp)) + "°C").c_str());
-            // =========================================================================
         }
     }
     http.end();
@@ -161,13 +175,30 @@ void setup() {
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -40);
     lv_label_set_text(time_label, "Connecting...");
 
+    // =========================================================================
+    // <<< КРОК 2: Створюємо кнопку з PNG-зображенням >>>
+
+    // Створюємо базовий об'єкт кнопки
     btn = lv_btn_create(screen);
     lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 40);
-    lv_obj_set_size(btn, 200, 70);
-    lv_obj_t * label = lv_label_create(btn);
-    lv_label_set_text(label, "Turn On PC");
-    lv_obj_center(label);
+    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 80);
+    // Встановлюємо розмір кнопки (наприклад, 60x60, або як ваше зображення)
+    lv_obj_set_size(btn, 60, 60);
+
+    // Робимо фон кнопки повністю прозорим
+    lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, 0);
+    // Прибираємо тінь та рамку
+    lv_obj_set_style_shadow_width(btn, 0, 0);
+    lv_obj_set_style_border_width(btn, 0, 0);
+
+    // Створюємо об'єкт зображення НА КНОПЦІ
+    lv_obj_t * img = lv_img_create(btn);
+    lv_img_set_src(img, &power_icon);
+    lv_obj_center(img);
+    // Дозволяємо перефарбовувати іконку для візуального відгуку
+    lv_obj_set_style_img_recolor_opa(img, LV_OPA_100, 0);
+    lv_obj_set_style_img_recolor(img, lv_color_black(), 0);
+    // =========================================================================
     
     city_label = lv_label_create(screen);
     lv_obj_set_style_text_font(city_label, &lv_font_montserrat_20, 0);
@@ -179,10 +210,7 @@ void setup() {
     lv_obj_set_style_text_font(temp_label, &lv_font_montserrat_20, 0);
     lv_obj_set_style_text_color(temp_label, lv_color_black(), 0);
     lv_obj_align_to(temp_label, time_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 10);
-    // =========================================================================
-    // <<< ОНОВЛЕНО: Додано символ градуса >>>
     lv_label_set_text(temp_label, "--°C");
-    // =========================================================================
 
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
