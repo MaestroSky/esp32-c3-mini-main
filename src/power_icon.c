@@ -275,12 +275,11 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_POWER uin
 #endif
 };
 
-const lv_img_dsc_t Power = {
-  .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
+const lv_img_dsc_t power_icon = {
   .header.always_zero = 0,
-  .header.reserved = 0,
   .header.w = 60,
   .header.h = 60,
-  .data_size = 3600 * LV_IMG_PX_SIZE_ALPHA_BYTE,
-  .data = Power_map,
+  .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
+  .data_size = sizeof(Power_map),
+  .data = Power_map
 };
