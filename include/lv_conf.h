@@ -358,6 +358,8 @@
 /*Enable symbols from Material Design*/
 #define LV_USE_SYMBOLS_MATERIAL 0
 
+#define LV_USE_SYMBOLS_FA 1 
+
 /*==================
  *   FONT USAGE
  *===================*/
