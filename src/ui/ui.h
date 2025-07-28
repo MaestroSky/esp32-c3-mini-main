@@ -31,6 +31,11 @@ extern "C" {
 
 ///////////////////// VARIABLES ////////////////////
 
+extern lv_anim_t * WeatherIconAnim_Animation(lv_obj_t * TargetObject, int delay);
+extern lv_anim_t * temperatureAnim_Animation(lv_obj_t * TargetObject, int delay);
+extern lv_anim_t * hourAnim_Animation(lv_obj_t * TargetObject, int delay);
+extern lv_anim_t * minuteAnim_Animation(lv_obj_t * TargetObject, int delay);
+extern lv_anim_t * secondAnim_Animation(lv_obj_t * TargetObject, int delay);
 
 // EVENTS
 
@@ -38,6 +43,7 @@ extern lv_obj_t * ui____initial_actions0;
 
 // IMAGES AND IMAGE SETS
 LV_IMG_DECLARE(ui_img_2081802504);    // assets/Фон.png
+LV_IMG_DECLARE(ui_img_cloud_png);    // assets/cloud.png
 
 // UI INIT
 void ui_init(void);

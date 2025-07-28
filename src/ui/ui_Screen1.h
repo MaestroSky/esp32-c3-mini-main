@@ -15,8 +15,15 @@ extern void ui_Screen1_screen_init(void);
 extern void ui_Screen1_screen_destroy(void);
 extern lv_obj_t * ui_Screen1;
 extern lv_obj_t * ui_fone;
-extern lv_obj_t * ui_Spinner1;
 extern lv_obj_t * ui_WOLButton;
+extern lv_obj_t * ui_hour;
+extern lv_obj_t * ui_minute;
+extern lv_obj_t * ui_second;
+extern lv_obj_t * ui_city;
+extern lv_obj_t * ui_WeatherIcon;
+extern lv_obj_t * ui_temperature;
+extern lv_obj_t * ui_celsius;
+extern lv_obj_t * ui_date;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

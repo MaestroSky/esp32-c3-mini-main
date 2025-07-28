@@ -8,17 +8,19 @@
 #include <ArduinoJson.h>
 #include "WakeOnLan.h"
 #include "main.h"
+#include "ui/ui.h" // Підключаємо головний файл UI
 
-// =========================================================================
-// <<< КРОК 1: Оголошуємо наше нове зображення >>>
-// Переконайтеся, що файл power_icon.c знаходиться у папці 'src'
-// і назва тут збігається з тією, яку ви вказали у конвертері.
-LV_IMG_DECLARE(power_icon);
-// =========================================================================
+// <<< ВАЖЛИВО: Оголошуємо іконки, які будемо використовувати динамічно >>>
+// SquareLine оголошує лише ті іконки, які використовуються в проєкті при експорті (хмара).
+// Інші (сонце, дощ і т.д.) потрібно оголосити вручну після конвертації.
+LV_IMG_DECLARE(ui_img_cloud_png); // Ця іконка вже є у вашому проєкті
+// LV_IMG_DECLARE(ui_img_sun_png);   // Додайте цю, коли сконвертуєте іконку сонця
+// LV_IMG_DECLARE(ui_img_rain_png);  // Додайте цю, коли сконвертуєте іконку дощу
 
 
 // --- КОНФІГУРАЦІЯ LGFX (без змін) ---
 class LGFX : public lgfx::LGFX_Device {
+  // ... (ваш код конфігурації LGFX залишається без змін) ...
   lgfx::Panel_GC9A01 _panel_instance;
   lgfx::Light_PWM _light_instance;
   lgfx::Bus_SPI _bus_instance;
@@ -53,13 +55,9 @@ String city = "Kherson";
 
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[2][240 * 10];
-lv_obj_t *time_label;
-lv_obj_t *btn;
-lv_obj_t *city_label;
-lv_obj_t *temp_label;
 
 static bool is_dimmed = false;
-const uint32_t INACTIVITY_TIMEOUT_MS = 5000;
+const uint32_t INACTIVITY_TIMEOUT_MS = 10000; // Збільшимо час до 10 сек
 
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
     if (tft.getStartCount() == 0) tft.endWrite();
@@ -77,37 +75,41 @@ void my_touchpad_read(lv_indev_drv_t *indev, lv_indev_data_t *data) {
     }
 }
 
-// =========================================================================
-// <<< ОНОВЛЕНО: Обробник події для кнопки-зображення >>>
-// =========================================================================
-static void btn_event_cb(lv_event_t * e) {
+// Обробник події для кнопки Wake-on-LAN
+static void wol_btn_event_cb(lv_event_t * e) {
     if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
         send_wol_packet(macAddress);
-        
-        lv_obj_t* btn_img = lv_obj_get_child(lv_event_get_target(e), 0);
-        lv_obj_set_style_img_recolor(btn_img, lv_palette_main(LV_PALETTE_LIGHT_GREEN), 0);
-        
-        // Створюємо таймер з трьома аргументами
-        lv_timer_t* timer = lv_timer_create([](lv_timer_t* t){
-            lv_obj_set_style_img_recolor((lv_obj_t*)t->user_data, lv_color_black(), 0);
-        }, 200, btn_img);
-
-        // Встановлюємо, що таймер має виконатися лише один раз
-        lv_timer_set_repeat_count(timer, 1);
+        // Візуальний відгук (анімація) має бути налаштований у SquareLine Studio
     }
 }
-// =========================================================================
 
+// Функція для вибору іконки погоди за кодом з API
+const lv_img_dsc_t* get_weather_icon_by_code(String icon_code) {
+    if (icon_code.startsWith("02") || icon_code.startsWith("03") || icon_code.startsWith("04")) {
+        return &ui_img_cloud_png; 
+    }
+    // if (icon_code.startsWith("01")) return &ui_img_sun_png; // Розкоментуйте, коли додасте іконку сонця
+    // ... додайте інші умови для дощу, снігу, грози і т.д.
+    
+    return &ui_img_cloud_png; // Іконка за замовчуванням
+}
+
+// Оновлення дати й часу для окремих полів
 void update_time_task(void *param) {
   struct tm timeinfo;
   while(1) {
     if (getLocalTime(&timeinfo)) {
-      lv_label_set_text_fmt(time_label, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+      // !!! Перевірте імена ui_hour, ui_minute і т.д. у файлі src/ui/ui_Screen1.h !!!
+      lv_label_set_text_fmt(ui_hour, "%02d", timeinfo.tm_hour);
+      lv_label_set_text_fmt(ui_minute, "%02d", timeinfo.tm_min);
+      lv_label_set_text_fmt(ui_second, "%02d", timeinfo.tm_sec);
+      lv_label_set_text_fmt(ui_date, "%02d.%02d.%d", timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
     }
     vTaskDelay(1000);
   }
 }
 
+// Оновлення погоди та іконки
 void update_weather() {
     if (WiFi.status() != WL_CONNECTED) return;
     HTTPClient http;
@@ -116,36 +118,44 @@ void update_weather() {
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
-        DynamicJsonDocument doc(1024);
+        DynamicJsonDocument doc(2048);
         deserializeJson(doc, payload);
         if (!doc.isNull()) {
-            const char* city_name = doc["name"];
+            lv_label_set_text(ui_city, doc["name"]);
             float temp = doc["main"]["temp"];
-            lv_label_set_text(city_label, city_name);
-            lv_label_set_text(temp_label, (String((int)round(temp)) + "°C").c_str());
+            lv_label_set_text_fmt(ui_temperature, "%+d", (int)round(temp));
+            String icon_code = doc["weather"][0]["icon"].as<String>();
+            lv_img_set_src(ui_WeatherIcon, get_weather_icon_by_code(icon_code));
         }
     }
     http.end();
 }
 
+// Режим затемнення екрана
 static void check_inactivity_timer_cb(lv_timer_t * timer) {
     uint32_t inactive_time = lv_disp_get_inactive_time(NULL);
 
     if (inactive_time >= INACTIVITY_TIMEOUT_MS && !is_dimmed) {
-        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
-        lv_obj_set_style_text_color(time_label, lv_color_white(), 0);
-        lv_obj_set_style_text_color(city_label, lv_color_white(), 0);
-        lv_obj_set_style_text_color(temp_label, lv_color_white(), 0);
-        lv_obj_add_flag(btn, LV_OBJ_FLAG_HIDDEN);
+        // Затемнюємо: ховаємо непотрібні елементи
+        lv_obj_add_flag(ui_WOLButton, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_WeatherIcon, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_temperature, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_celsius, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_fone, LV_OBJ_FLAG_HIDDEN); // Ховаємо фонове зображення
         is_dimmed = true;
     }
 
     if (inactive_time < INACTIVITY_TIMEOUT_MS && is_dimmed) {
-        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_white(), 0);
-        lv_obj_set_style_text_color(time_label, lv_color_black(), 0);
-        lv_obj_set_style_text_color(city_label, lv_color_black(), 0);
-        lv_obj_set_style_text_color(temp_label, lv_color_black(), 0);
-        lv_obj_clear_flag(btn, LV_OBJ_FLAG_HIDDEN);
+        // Повертаємо до життя: показуємо всі елементи
+        lv_obj_clear_flag(ui_WOLButton, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_WeatherIcon, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_temperature, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_celsius, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_fone, LV_OBJ_FLAG_HIDDEN); // Показуємо фонове зображення
         is_dimmed = false;
     }
 }
@@ -166,58 +176,24 @@ void setup() {
     indev_drv.read_cb = my_touchpad_read;
     lv_indev_drv_register(&indev_drv);
 
-    lv_obj_t* screen = lv_scr_act();
-    lv_obj_set_style_bg_color(screen, lv_color_white(), 0);
-
-    time_label = lv_label_create(screen);
-    lv_obj_set_style_text_font(time_label, &lv_font_montserrat_28, 0);
-    lv_obj_set_style_text_color(time_label, lv_color_black(), 0);
-    lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -40);
-    lv_label_set_text(time_label, "Connecting...");
-
-    // =========================================================================
-    // <<< КРОК 2: Створюємо кнопку з PNG-зображенням >>>
-
-    // Створюємо базовий об'єкт кнопки
-    btn = lv_btn_create(screen);
-    lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 80);
-    // Встановлюємо розмір кнопки (наприклад, 60x60, або як ваше зображення)
-    lv_obj_set_size(btn, 60, 60);
-
-    // Робимо фон кнопки повністю прозорим
-    lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, 0);
-    // Прибираємо тінь та рамку
-    lv_obj_set_style_shadow_width(btn, 0, 0);
-    lv_obj_set_style_border_width(btn, 0, 0);
-
-    // Створюємо об'єкт зображення НА КНОПЦІ
-    lv_obj_t * img = lv_img_create(btn);
-    lv_img_set_src(img, &power_icon);
-    lv_obj_center(img);
-    // Дозволяємо перефарбовувати іконку для візуального відгуку
-    lv_obj_set_style_img_recolor_opa(img, LV_OPA_100, 0);
-    lv_obj_set_style_img_recolor(img, lv_color_black(), 0);
-    // =========================================================================
+    // Створюємо весь інтерфейс з SquareLine.
+    // Анімації, які ви налаштували в студії, запустяться автоматично.
+    ui_init(); 
     
-    city_label = lv_label_create(screen);
-    lv_obj_set_style_text_font(city_label, &lv_font_montserrat_20, 0);
-    lv_obj_set_style_text_color(city_label, lv_color_black(), 0);
-    lv_obj_align_to(city_label, time_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
-    lv_label_set_text(city_label, "Loading...");
+    // Прив'язуємо подію до кнопки
+    // !!! Перевірте ім'я 'ui_WOLButton' у файлі 'src/ui/ui_Screen1.h' !!!
+    lv_obj_add_event_cb(ui_WOLButton, wol_btn_event_cb, LV_EVENT_CLICKED, NULL);
 
-    temp_label = lv_label_create(screen);
-    lv_obj_set_style_text_font(temp_label, &lv_font_montserrat_20, 0);
-    lv_obj_set_style_text_color(temp_label, lv_color_black(), 0);
-    lv_obj_align_to(temp_label, time_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 10);
-    lv_label_set_text(temp_label, "--°C");
+    // Встановлюємо початковий текст
+    lv_label_set_text(ui_city, "Loading...");
+    lv_label_set_text(ui_temperature, "--");
 
+    // Запускаємо логіку
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
     Serial.println("\nWiFi Connected!");
-
+    
     update_weather();
-    lv_label_set_text(time_label, "Connected!");
     
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     xTaskCreate(update_time_task, "time_task", 4096, NULL, 5, NULL);
