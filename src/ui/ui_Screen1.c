@@ -45,6 +45,15 @@ lv_obj_t * ui_Image25 = NULL;
 lv_obj_t * ui_Image26 = NULL;
 lv_obj_t * ui_WIFIOFF = NULL;
 // event funtions
+void ui_event_Screen1(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_GESTURE &&  lv_indev_get_gesture_dir(lv_indev_get_act()) == LV_DIR_LEFT) {
+        lv_indev_wait_release(lv_indev_get_act());
+        _ui_screen_change(&ui_Screen2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, &ui_Screen2_screen_init);
+    }
+}
 
 // build funtions
 
@@ -148,7 +157,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_width(ui_WiFiON, LV_SIZE_CONTENT);   /// 30
     lv_obj_set_height(ui_WiFiON, LV_SIZE_CONTENT);    /// 30
     lv_obj_set_x(ui_WiFiON, 75);
-    lv_obj_set_y(ui_WiFiON, -10);
+    lv_obj_set_y(ui_WiFiON, -20);
     lv_obj_set_align(ui_WiFiON, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_WiFiON, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
     lv_obj_clear_flag(ui_WiFiON, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -432,6 +441,8 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_WIFIOFF, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_WIFIOFF, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
     lv_obj_clear_flag(ui_WIFIOFF, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    lv_obj_add_event_cb(ui_Screen1, ui_event_Screen1, LV_EVENT_ALL, NULL);
 
 }
 
