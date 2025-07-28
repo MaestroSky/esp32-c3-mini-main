@@ -135,31 +135,52 @@ void update_weather() {
 static void check_inactivity_timer_cb(lv_timer_t * timer) {
     uint32_t inactive_time = lv_disp_get_inactive_time(NULL);
 
+    // --- БЛОК ЗАТЕМНЕННЯ ЕКРАНА ---
     if (inactive_time >= INACTIVITY_TIMEOUT_MS && !is_dimmed) {
-        // Затемнюємо: ховаємо непотрібні елементи
+        // 1. Ховаємо фонове зображення та інші непотрібні елементи
+        lv_obj_add_flag(ui_fone, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_WOLButton, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_WeatherIcon, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_temperature, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_celsius, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_fone, LV_OBJ_FLAG_HIDDEN); // Ховаємо фонове зображення
+
+        // 2. Тепер, коли фонове зображення сховане, змінюємо колір самого екрана
+        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
+        
+        // 3. Змінюємо колір тексту для елементів, що залишилися
+        lv_obj_set_style_text_color(ui_hour, lv_color_white(), 0);
+        lv_obj_set_style_text_color(ui_minute, lv_color_white(), 0);
+        lv_obj_set_style_text_color(ui_second, lv_color_white(), 0);
+
         is_dimmed = true;
     }
 
+    // --- БЛОК "ПРОБУДЖЕННЯ" ЕКРАНА ---
     if (inactive_time < INACTIVITY_TIMEOUT_MS && is_dimmed) {
-        // Повертаємо до життя: показуємо всі елементи
+        // 1. Показуємо всі елементи, які були сховані
+        lv_obj_clear_flag(ui_fone, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_WOLButton, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_WeatherIcon, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_temperature, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_celsius, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(ui_fone, LV_OBJ_FLAG_HIDDEN); // Показуємо фонове зображення
+
+        // 2. Повертаємо стилі, які були задані в SquareLine.
+        // Не потрібно викликати ui_init()! Стилі нікуди не зникли,
+        // просто повертаємо об'єктам їхні початкові кольори.
+        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0xFFFFFF), 0); // Повертаємо білий фон екрана (хоча його і перекриє ui_fone)
+        lv_obj_set_style_text_color(ui_hour, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_text_color(ui_minute, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_text_color(ui_second, lv_color_hex(0x000000), 0);
+        // Примітка: кольори інших елементів (city, temp) відновляться автоматично,
+        // коли стане видимим їхній фон (ui_fone).
+
         is_dimmed = false;
     }
 }
-
 void setup() {
     Serial.begin(115200);
     tft.init(); tft.initDMA(); tft.startWrite();

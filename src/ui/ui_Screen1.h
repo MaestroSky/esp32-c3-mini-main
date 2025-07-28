@@ -24,6 +24,8 @@ extern lv_obj_t * ui_WeatherIcon;
 extern lv_obj_t * ui_temperature;
 extern lv_obj_t * ui_celsius;
 extern lv_obj_t * ui_date;
+extern lv_obj_t * ui_WiFiON;
+extern lv_obj_t * ui_WiFiOFF;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

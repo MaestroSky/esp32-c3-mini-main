@@ -16,6 +16,8 @@ lv_obj_t * ui_WeatherIcon = NULL;
 lv_obj_t * ui_temperature = NULL;
 lv_obj_t * ui_celsius = NULL;
 lv_obj_t * ui_date = NULL;
+lv_obj_t * ui_WiFiON = NULL;
+lv_obj_t * ui_WiFiOFF = NULL;
 // event funtions
 
 // build funtions
@@ -124,6 +126,26 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_opa(ui_date, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_date, &lv_font_montserrat_16, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    ui_WiFiON = lv_img_create(ui_Screen1);
+    lv_img_set_src(ui_WiFiON, &ui_img_wifion_png);
+    lv_obj_set_width(ui_WiFiON, LV_SIZE_CONTENT);   /// 30
+    lv_obj_set_height(ui_WiFiON, LV_SIZE_CONTENT);    /// 30
+    lv_obj_set_x(ui_WiFiON, 75);
+    lv_obj_set_y(ui_WiFiON, -10);
+    lv_obj_set_align(ui_WiFiON, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_WiFiON, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
+    lv_obj_clear_flag(ui_WiFiON, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_WiFiOFF = lv_img_create(ui_Screen1);
+    lv_img_set_src(ui_WiFiOFF, &ui_img_wifioff_png);
+    lv_obj_set_width(ui_WiFiOFF, LV_SIZE_CONTENT);   /// 30
+    lv_obj_set_height(ui_WiFiOFF, LV_SIZE_CONTENT);    /// 30
+    lv_obj_set_x(ui_WiFiOFF, 75);
+    lv_obj_set_y(ui_WiFiOFF, -10);
+    lv_obj_set_align(ui_WiFiOFF, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_WiFiOFF, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
+    lv_obj_clear_flag(ui_WiFiOFF, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
 }
 
 void ui_Screen1_screen_destroy(void)
@@ -142,5 +164,7 @@ void ui_Screen1_screen_destroy(void)
     ui_temperature = NULL;
     ui_celsius = NULL;
     ui_date = NULL;
+    ui_WiFiON = NULL;
+    ui_WiFiOFF = NULL;
 
 }
