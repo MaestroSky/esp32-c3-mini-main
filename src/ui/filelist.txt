@@ -4,6 +4,7 @@ ui_comp_hook.c
 ui_helpers.c
 ui_img_2081802504.c
 ui_img_wifion_png.c
+ui_img_wifioff_png.c
 ui_img_partlycloudy_png.c
 ui_img_blizzard_png.c
 ui_img_blowingsnow_png.c
