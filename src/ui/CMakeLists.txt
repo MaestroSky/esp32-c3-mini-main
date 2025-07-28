@@ -3,8 +3,8 @@ SET(SOURCES ui_Screen1.c
     ui_comp_hook.c
     ui_helpers.c
     ui_img_2081802504.c
+    ui_img_wolbutton_png.c
     ui_img_wifion_png.c
-    ui_img_wifioff_png.c
     ui_img_partlycloudy_png.c
     ui_img_blizzard_png.c
     ui_img_blowingsnow_png.c
@@ -30,6 +30,7 @@ SET(SOURCES ui_Screen1.c
     ui_img_severthunderstorm_png.c
     ui_img_sleet_png.c
     ui_img_snow_png.c
-    ui_img_sunny_png.c)
+    ui_img_sunny_png.c
+    ui_img_wifioff_png.c)
 
 add_library(ui ${SOURCES})

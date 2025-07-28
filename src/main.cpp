@@ -12,16 +12,33 @@
 
 // <<< ДОДАНО: Оголошення всіх ваших нових іконок погоди >>>
 // Імена мають збігатися з тими, що згенерувала SquareLine.
+LV_IMG_DECLARE(ui_img_blizzard_png);
+LV_IMG_DECLARE(ui_img_blowingsnow_png);
+LV_IMG_DECLARE(ui_img_clearnight_png);
 LV_IMG_DECLARE(ui_img_cloudy_png);
-LV_IMG_DECLARE(ui_img_sunny_png);
-LV_IMG_DECLARE(ui_img_clear_night_png);
-LV_IMG_DECLARE(ui_img_partly_cloudy_png);
-LV_IMG_DECLARE(ui_img_partly_cloudy_night_png);
+LV_IMG_DECLARE(ui_img_cloudycleartimes_png);
+LV_IMG_DECLARE(ui_img_cloudycleartimesnight_png);
 LV_IMG_DECLARE(ui_img_drizzle_png);
-LV_IMG_DECLARE(ui_img_rain_png);
-LV_IMG_DECLARE(ui_img_rain_thunderstorm_png);
-LV_IMG_DECLARE(ui_img_snow_png);
+LV_IMG_DECLARE(ui_img_drizzlenight_png);
+LV_IMG_DECLARE(ui_img_drizzlesun_png);
 LV_IMG_DECLARE(ui_img_fog_png);
+LV_IMG_DECLARE(ui_img_hail_png);
+LV_IMG_DECLARE(ui_img_heavyrain_png);
+LV_IMG_DECLARE(ui_img_humidity_png);
+LV_IMG_DECLARE(ui_img_partlycloudy_png);
+LV_IMG_DECLARE(ui_img_partlycloudynight_png);
+LV_IMG_DECLARE(ui_img_rain_png);
+LV_IMG_DECLARE(ui_img_rainnight_png);
+LV_IMG_DECLARE(ui_img_rainsun_png);
+LV_IMG_DECLARE(ui_img_rainthunderstorm_png);
+LV_IMG_DECLARE(ui_img_scatteradshowers_png);
+LV_IMG_DECLARE(ui_img_scatteradshowersnight_png);
+LV_IMG_DECLARE(ui_img_scatteradthunderstorm_png);
+LV_IMG_DECLARE(ui_img_severthunderstorm_png);
+LV_IMG_DECLARE(ui_img_sleet_png);
+LV_IMG_DECLARE(ui_img_snow_png);
+LV_IMG_DECLARE(ui_img_sunny_png);
+LV_IMG_DECLARE(ui_img_wind_png);
 // Примітка: SquareLine автоматично перетворює імена файлів, напр. "Rain&Thunderstorm.png" -> "ui_img_rain_thunderstorm_png"
 
 
@@ -93,10 +110,10 @@ static void wol_btn_event_cb(lv_event_t * e) {
 // <<< ЗМІНЕНО: Повністю оновлена функція для вибору іконки погоди за кодом з API >>>
 const lv_img_dsc_t* get_weather_icon_by_code(String icon_code) {
     if (icon_code == "01d") return &ui_img_sunny_png;
-    if (icon_code == "01n") return &ui_img_clear_night_png;
+    if (icon_code == "01n") return &ui_img_clearnight_png;
 
-    if (icon_code == "02d") return &ui_img_partly_cloudy_png;
-    if (icon_code == "02n") return &ui_img_partly_cloudy_night_png;
+    if (icon_code == "02d") return &ui_img_partlycloudy_png;
+    if (icon_code == "02n") return &ui_img_partlycloudynight_png;
 
     if (icon_code == "03d" || icon_code == "03n") return &ui_img_cloudy_png;
     if (icon_code == "04d" || icon_code == "04n") return &ui_img_cloudy_png;
@@ -104,7 +121,7 @@ const lv_img_dsc_t* get_weather_icon_by_code(String icon_code) {
     if (icon_code == "09d" || icon_code == "09n") return &ui_img_drizzle_png;
     if (icon_code == "10d" || icon_code == "10n") return &ui_img_rain_png;
 
-    if (icon_code == "11d" || icon_code == "11n") return &ui_img_rain_thunderstorm_png;
+    if (icon_code == "11d" || icon_code == "11n") return &ui_img_rainthunderstorm_png;
 
     if (icon_code == "13d" || icon_code == "13n") return &ui_img_snow_png;
 
@@ -168,7 +185,7 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         lv_obj_add_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
 
         lv_obj_add_flag(ui_WiFiON, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_WiFiOFF, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_WIFIOFF, LV_OBJ_FLAG_HIDDEN);
 
         // 2. Тепер, коли фонове зображення сховане, змінюємо колір самого екрана
         lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
@@ -206,10 +223,10 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
 void update_wifi_status_icon() {
     if (WiFi.status() == WL_CONNECTED) {
         lv_obj_clear_flag(ui_WiFiON, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_WiFiOFF, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_WIFIOFF, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(ui_WiFiON, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(ui_WiFiOFF, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_WIFIOFF, LV_OBJ_FLAG_HIDDEN);
     }
 }
 

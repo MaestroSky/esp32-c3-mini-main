@@ -43,6 +43,7 @@ lv_obj_t * ui_Image23 = NULL;
 lv_obj_t * ui_Image24 = NULL;
 lv_obj_t * ui_Image25 = NULL;
 lv_obj_t * ui_Image26 = NULL;
+lv_obj_t * ui_WIFIOFF = NULL;
 // event funtions
 
 // build funtions
@@ -71,6 +72,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_radius(ui_WOLButton, 35, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_color(ui_WOLButton, lv_color_hex(0xF6F6F6), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_WOLButton, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_img_src(ui_WOLButton, &ui_img_wolbutton_png, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_hour = lv_label_create(ui_Screen1);
     lv_obj_set_width(ui_hour, LV_SIZE_CONTENT);   /// 1
@@ -421,6 +423,16 @@ void ui_Screen1_screen_init(void)
     lv_obj_add_flag(ui_Image26, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
     lv_obj_clear_flag(ui_Image26, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+    ui_WIFIOFF = lv_img_create(ui_Screen1);
+    lv_img_set_src(ui_WIFIOFF, &ui_img_wifioff_png);
+    lv_obj_set_width(ui_WIFIOFF, LV_SIZE_CONTENT);   /// 30
+    lv_obj_set_height(ui_WIFIOFF, LV_SIZE_CONTENT);    /// 30
+    lv_obj_set_x(ui_WIFIOFF, 139);
+    lv_obj_set_y(ui_WIFIOFF, -40);
+    lv_obj_set_align(ui_WIFIOFF, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_WIFIOFF, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
+    lv_obj_clear_flag(ui_WIFIOFF, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
 }
 
 void ui_Screen1_screen_destroy(void)
@@ -466,5 +478,6 @@ void ui_Screen1_screen_destroy(void)
     ui_Image24 = NULL;
     ui_Image25 = NULL;
     ui_Image26 = NULL;
+    ui_WIFIOFF = NULL;
 
 }

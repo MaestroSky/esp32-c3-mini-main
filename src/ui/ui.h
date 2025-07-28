@@ -43,6 +43,7 @@ extern lv_obj_t * ui____initial_actions0;
 
 // IMAGES AND IMAGE SETS
 LV_IMG_DECLARE(ui_img_2081802504);    // assets/Фон.png
+LV_IMG_DECLARE(ui_img_wolbutton_png);    // assets/WOLButton.png
 LV_IMG_DECLARE(ui_img_wifion_png);    // assets/WiFiON.png
 LV_IMG_DECLARE(ui_img_partlycloudy_png);    // assets/PartlyCloudy.png
 LV_IMG_DECLARE(ui_img_blizzard_png);    // assets/Blizzard.png
@@ -70,6 +71,7 @@ LV_IMG_DECLARE(ui_img_severthunderstorm_png);    // assets/SeverThunderstorm.png
 LV_IMG_DECLARE(ui_img_sleet_png);    // assets/Sleet.png
 LV_IMG_DECLARE(ui_img_snow_png);    // assets/Snow.png
 LV_IMG_DECLARE(ui_img_sunny_png);    // assets/sunny.png
+LV_IMG_DECLARE(ui_img_wifioff_png);    // assets/WiFiOFF.png
 
 // UI INIT
 void ui_init(void);
