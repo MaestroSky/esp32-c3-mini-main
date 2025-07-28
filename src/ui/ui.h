@@ -28,7 +28,6 @@ extern "C" {
 ///////////////////// SCREENS ////////////////////
 
 #include "ui_Screen1.h"
-#include "ui_Screen2.h"
 
 ///////////////////// VARIABLES ////////////////////
 
@@ -47,6 +46,32 @@ LV_IMG_DECLARE(ui_img_2081802504);    // assets/Фон.png
 LV_IMG_DECLARE(ui_img_wifion_png);    // assets/WiFiON.png
 LV_IMG_DECLARE(ui_img_wifioff_png);    // assets/WiFiOFF.png
 LV_IMG_DECLARE(ui_img_2013642630);    // assets/Cloudy-clear at times.png
+LV_IMG_DECLARE(ui_img_blizzard_png);    // assets/Blizzard.png
+LV_IMG_DECLARE(ui_img_345481163);    // assets/Blowing-snow.png
+LV_IMG_DECLARE(ui_img_1383777379);    // assets/Clear-night.png
+LV_IMG_DECLARE(ui_img_996087739);    // assets/Cloudy-clear at times-night.png
+LV_IMG_DECLARE(ui_img_cloudy_png);    // assets/Cloudy.png
+LV_IMG_DECLARE(ui_img_1411788627);    // assets/Drizzle&Sun.png
+LV_IMG_DECLARE(ui_img_177608572);    // assets/Drizzle-night.png
+LV_IMG_DECLARE(ui_img_drizzle_png);    // assets/Drizzle.png
+LV_IMG_DECLARE(ui_img_fog_png);    // assets/Fog.png
+LV_IMG_DECLARE(ui_img_hail_png);    // assets/Hail.png
+LV_IMG_DECLARE(ui_img_368706879);    // assets/Heavy-rain.png
+LV_IMG_DECLARE(ui_img_humidity_png);    // assets/Humidity.png
+LV_IMG_DECLARE(ui_img_68068241);    // assets/Partly-cloudy-night.png
+LV_IMG_DECLARE(ui_img_1043026700);    // assets/Partly-cloudy.png
+LV_IMG_DECLARE(ui_img_1462637809);    // assets/Rain&Sun.png
+LV_IMG_DECLARE(ui_img_1128119850);    // assets/Rain&Thunderstorm.png
+LV_IMG_DECLARE(ui_img_2145098084);    // assets/Rain-night.png
+LV_IMG_DECLARE(ui_img_rain_png);    // assets/Rain.png
+LV_IMG_DECLARE(ui_img_223749859);    // assets/Scatterad-showers-night.png
+LV_IMG_DECLARE(ui_img_2101116832);    // assets/Scatterad-showers.png
+LV_IMG_DECLARE(ui_img_710556636);    // assets/Scatterad-thunderstorm.png
+LV_IMG_DECLARE(ui_img_17412894);    // assets/Sever-thunderstorm.png
+LV_IMG_DECLARE(ui_img_sleet_png);    // assets/Sleet.png
+LV_IMG_DECLARE(ui_img_snow_png);    // assets/Snow.png
+LV_IMG_DECLARE(ui_img_sunny_png);    // assets/sunny.png
+LV_IMG_DECLARE(ui_img_wind_png);    // assets/Wind.png
 
 // UI INIT
 void ui_init(void);

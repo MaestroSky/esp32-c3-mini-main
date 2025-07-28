@@ -10,12 +10,19 @@
 #include "main.h"
 #include "ui/ui.h" // Підключаємо головний файл UI
 
-// <<< ВАЖЛИВО: Оголошуємо іконки, які будемо використовувати динамічно >>>
-// SquareLine оголошує лише ті іконки, які використовуються в проєкті при експорті (хмара).
-// Інші (сонце, дощ і т.д.) потрібно оголосити вручну після конвертації.
-LV_IMG_DECLARE(ui_img_cloud_png); // Ця іконка вже є у вашому проєкті
-// LV_IMG_DECLARE(ui_img_sun_png);   // Додайте цю, коли сконвертуєте іконку сонця
-// LV_IMG_DECLARE(ui_img_rain_png);  // Додайте цю, коли сконвертуєте іконку дощу
+// <<< ДОДАНО: Оголошення всіх ваших нових іконок погоди >>>
+// Імена мають збігатися з тими, що згенерувала SquareLine.
+LV_IMG_DECLARE(ui_img_cloudy_png);
+LV_IMG_DECLARE(ui_img_sunny_png);
+LV_IMG_DECLARE(ui_img_clear_night_png);
+LV_IMG_DECLARE(ui_img_partly_cloudy_png);
+LV_IMG_DECLARE(ui_img_partly_cloudy_night_png);
+LV_IMG_DECLARE(ui_img_drizzle_png);
+LV_IMG_DECLARE(ui_img_rain_png);
+LV_IMG_DECLARE(ui_img_rain_thunderstorm_png);
+LV_IMG_DECLARE(ui_img_snow_png);
+LV_IMG_DECLARE(ui_img_fog_png);
+// Примітка: SquareLine автоматично перетворює імена файлів, напр. "Rain&Thunderstorm.png" -> "ui_img_rain_thunderstorm_png"
 
 
 // --- КОНФІГУРАЦІЯ LGFX (без змін) ---
@@ -83,15 +90,28 @@ static void wol_btn_event_cb(lv_event_t * e) {
     }
 }
 
-// Функція для вибору іконки погоди за кодом з API
+// <<< ЗМІНЕНО: Повністю оновлена функція для вибору іконки погоди за кодом з API >>>
 const lv_img_dsc_t* get_weather_icon_by_code(String icon_code) {
-    if (icon_code.startsWith("02") || icon_code.startsWith("03") || icon_code.startsWith("04")) {
-        return &ui_img_cloud_png; 
-    }
-    // if (icon_code.startsWith("01")) return &ui_img_sun_png; // Розкоментуйте, коли додасте іконку сонця
-    // ... додайте інші умови для дощу, снігу, грози і т.д.
-    
-    return &ui_img_cloud_png; // Іконка за замовчуванням
+    if (icon_code == "01d") return &ui_img_sunny_png;
+    if (icon_code == "01n") return &ui_img_clear_night_png;
+
+    if (icon_code == "02d") return &ui_img_partly_cloudy_png;
+    if (icon_code == "02n") return &ui_img_partly_cloudy_night_png;
+
+    if (icon_code == "03d" || icon_code == "03n") return &ui_img_cloudy_png;
+    if (icon_code == "04d" || icon_code == "04n") return &ui_img_cloudy_png;
+
+    if (icon_code == "09d" || icon_code == "09n") return &ui_img_drizzle_png;
+    if (icon_code == "10d" || icon_code == "10n") return &ui_img_rain_png;
+
+    if (icon_code == "11d" || icon_code == "11n") return &ui_img_rain_thunderstorm_png;
+
+    if (icon_code == "13d" || icon_code == "13n") return &ui_img_snow_png;
+
+    if (icon_code == "50d" || icon_code == "50n") return &ui_img_fog_png;
+
+    // Іконка за замовчуванням, якщо прийшов невідомий код
+    return &ui_img_cloudy_png; 
 }
 
 // Оновлення дати й часу для окремих полів
@@ -125,6 +145,7 @@ void update_weather() {
             float temp = doc["main"]["temp"];
             lv_label_set_text_fmt(ui_temperature, "%+d", (int)round(temp));
             String icon_code = doc["weather"][0]["icon"].as<String>();
+            // Цей рядок тепер буде викликати нову, розширену функцію
             lv_img_set_src(ui_WeatherIcon, get_weather_icon_by_code(icon_code));
         }
     }
@@ -146,7 +167,6 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         lv_obj_add_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
 
-        // <<< ДОДАНО: ховаємо іконки WiFi при затемненні >>>
         lv_obj_add_flag(ui_WiFiON, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_WiFiOFF, LV_OBJ_FLAG_HIDDEN);
 
@@ -172,23 +192,17 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         lv_obj_clear_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
         
-        // <<< ДОДАНО: іконки WiFi будуть відновлені автоматично в loop() >>>
-        
         // 2. Повертаємо стилі, які були задані в SquareLine.
-        // Не потрібно викликати ui_init()! Стилі нікуди не зникли,
-        // просто повертаємо об'єктам їхні початкові кольори.
-        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0xFFFFFF), 0); // Повертаємо білий фон екрана (хоча його і перекриє ui_fone)
+        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0xFFFFFF), 0);
         lv_obj_set_style_text_color(ui_hour, lv_color_hex(0x000000), 0);
         lv_obj_set_style_text_color(ui_minute, lv_color_hex(0x000000), 0);
         lv_obj_set_style_text_color(ui_second, lv_color_hex(0x000000), 0);
-        // Примітка: кольори інших елементів (city, temp) відновляться автоматично,
-        // коли стане видимим їхній фон (ui_fone).
 
         is_dimmed = false;
     }
 }
 
-// <<< ДОДАНО: нова функція для керування іконками WiFi >>>
+// Функція для керування іконками WiFi
 void update_wifi_status_icon() {
     if (WiFi.status() == WL_CONNECTED) {
         lv_obj_clear_flag(ui_WiFiON, LV_OBJ_FLAG_HIDDEN);
@@ -216,14 +230,12 @@ void setup() {
     lv_indev_drv_register(&indev_drv);
 
     // Створюємо весь інтерфейс з SquareLine.
-    // Анімації, які ви налаштували в студії, запустяться автоматично.
     ui_init(); 
     
     // Прив'язуємо подію до кнопки
-    // !!! Перевірте ім'я 'ui_WOLButton' у файлі 'src/ui/ui_Screen1.h' !!!
     lv_obj_add_event_cb(ui_WOLButton, wol_btn_event_cb, LV_EVENT_CLICKED, NULL);
 
-    // <<< ДОДАНО: встановлення початкового стану іконки WiFi >>>
+    // Встановлення початкового стану іконки WiFi
     update_wifi_status_icon();
 
     // Встановлюємо початковий текст
@@ -235,7 +247,7 @@ void setup() {
     while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
     Serial.println("\nWiFi Connected!");
     
-    // <<< ДОДАНО: оновлення іконки WiFi після підключення >>>
+    // Оновлення іконки WiFi після підключення
     update_wifi_status_icon();
 
     update_weather();
@@ -250,10 +262,9 @@ void setup() {
 void loop() {
     lv_timer_handler();
 
-    // <<< ДОДАНО: періодична перевірка статусу WiFi >>>
+    // Періодична перевірка статусу WiFi
     static uint32_t last_wifi_check = 0;
     if (millis() - last_wifi_check > 2000) {
-        // Додатково перевіряємо, чи не в режимі затемнення, щоб не показувати іконки на чорному екрані
         if (!is_dimmed) {
             update_wifi_status_icon();
         }
