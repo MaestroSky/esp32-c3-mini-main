@@ -12,12 +12,12 @@ lv_obj_t * ui_hour = NULL;
 lv_obj_t * ui_minute = NULL;
 lv_obj_t * ui_second = NULL;
 lv_obj_t * ui_city = NULL;
-lv_obj_t * ui_WeatherIcon = NULL;
 lv_obj_t * ui_temperature = NULL;
 lv_obj_t * ui_celsius = NULL;
 lv_obj_t * ui_date = NULL;
 lv_obj_t * ui_WiFiON = NULL;
 lv_obj_t * ui_WiFiOFF = NULL;
+lv_obj_t * ui_WeatherIcon = NULL;
 // event funtions
 
 // build funtions
@@ -86,16 +86,6 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_city, LV_ALIGN_CENTER);
     lv_label_set_text(ui_city, "Kherson");
 
-    ui_WeatherIcon = lv_img_create(ui_Screen1);
-    lv_img_set_src(ui_WeatherIcon, &ui_img_cloud_png);
-    lv_obj_set_width(ui_WeatherIcon, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_WeatherIcon, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_WeatherIcon, -60);
-    lv_obj_set_y(ui_WeatherIcon, 0);
-    lv_obj_set_align(ui_WeatherIcon, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_WeatherIcon, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
-    lv_obj_clear_flag(ui_WeatherIcon, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
     ui_temperature = lv_label_create(ui_Screen1);
     lv_obj_set_width(ui_temperature, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_temperature, LV_SIZE_CONTENT);    /// 1
@@ -146,6 +136,16 @@ void ui_Screen1_screen_init(void)
     lv_obj_add_flag(ui_WiFiOFF, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
     lv_obj_clear_flag(ui_WiFiOFF, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+    ui_WeatherIcon = lv_img_create(ui_Screen1);
+    lv_img_set_src(ui_WeatherIcon, &ui_img_2013642630);
+    lv_obj_set_width(ui_WeatherIcon, LV_SIZE_CONTENT);   /// 30
+    lv_obj_set_height(ui_WeatherIcon, LV_SIZE_CONTENT);    /// 30
+    lv_obj_set_x(ui_WeatherIcon, -66);
+    lv_obj_set_y(ui_WeatherIcon, -5);
+    lv_obj_set_align(ui_WeatherIcon, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_WeatherIcon, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
+    lv_obj_clear_flag(ui_WeatherIcon, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
 }
 
 void ui_Screen1_screen_destroy(void)
@@ -160,11 +160,11 @@ void ui_Screen1_screen_destroy(void)
     ui_minute = NULL;
     ui_second = NULL;
     ui_city = NULL;
-    ui_WeatherIcon = NULL;
     ui_temperature = NULL;
     ui_celsius = NULL;
     ui_date = NULL;
     ui_WiFiON = NULL;
     ui_WiFiOFF = NULL;
+    ui_WeatherIcon = NULL;
 
 }

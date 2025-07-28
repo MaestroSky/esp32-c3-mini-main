@@ -28,6 +28,7 @@ extern "C" {
 ///////////////////// SCREENS ////////////////////
 
 #include "ui_Screen1.h"
+#include "ui_Screen2.h"
 
 ///////////////////// VARIABLES ////////////////////
 
@@ -43,9 +44,9 @@ extern lv_obj_t * ui____initial_actions0;
 
 // IMAGES AND IMAGE SETS
 LV_IMG_DECLARE(ui_img_2081802504);    // assets/Фон.png
-LV_IMG_DECLARE(ui_img_cloud_png);    // assets/cloud.png
 LV_IMG_DECLARE(ui_img_wifion_png);    // assets/WiFiON.png
 LV_IMG_DECLARE(ui_img_wifioff_png);    // assets/WiFiOFF.png
+LV_IMG_DECLARE(ui_img_2013642630);    // assets/Cloudy-clear at times.png
 
 // UI INIT
 void ui_init(void);

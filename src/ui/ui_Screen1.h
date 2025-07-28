@@ -20,12 +20,12 @@ extern lv_obj_t * ui_hour;
 extern lv_obj_t * ui_minute;
 extern lv_obj_t * ui_second;
 extern lv_obj_t * ui_city;
-extern lv_obj_t * ui_WeatherIcon;
 extern lv_obj_t * ui_temperature;
 extern lv_obj_t * ui_celsius;
 extern lv_obj_t * ui_date;
 extern lv_obj_t * ui_WiFiON;
 extern lv_obj_t * ui_WiFiOFF;
+extern lv_obj_t * ui_WeatherIcon;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

@@ -146,6 +146,10 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         lv_obj_add_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
 
+        // <<< ДОДАНО: ховаємо іконки WiFi при затемненні >>>
+        lv_obj_add_flag(ui_WiFiON, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_WiFiOFF, LV_OBJ_FLAG_HIDDEN);
+
         // 2. Тепер, коли фонове зображення сховане, змінюємо колір самого екрана
         lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
         
@@ -167,7 +171,9 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         lv_obj_clear_flag(ui_celsius, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
-
+        
+        // <<< ДОДАНО: іконки WiFi будуть відновлені автоматично в loop() >>>
+        
         // 2. Повертаємо стилі, які були задані в SquareLine.
         // Не потрібно викликати ui_init()! Стилі нікуди не зникли,
         // просто повертаємо об'єктам їхні початкові кольори.
@@ -181,6 +187,18 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         is_dimmed = false;
     }
 }
+
+// <<< ДОДАНО: нова функція для керування іконками WiFi >>>
+void update_wifi_status_icon() {
+    if (WiFi.status() == WL_CONNECTED) {
+        lv_obj_clear_flag(ui_WiFiON, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_WiFiOFF, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(ui_WiFiON, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui_WiFiOFF, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
 void setup() {
     Serial.begin(115200);
     tft.init(); tft.initDMA(); tft.startWrite();
@@ -205,6 +223,9 @@ void setup() {
     // !!! Перевірте ім'я 'ui_WOLButton' у файлі 'src/ui/ui_Screen1.h' !!!
     lv_obj_add_event_cb(ui_WOLButton, wol_btn_event_cb, LV_EVENT_CLICKED, NULL);
 
+    // <<< ДОДАНО: встановлення початкового стану іконки WiFi >>>
+    update_wifi_status_icon();
+
     // Встановлюємо початковий текст
     lv_label_set_text(ui_city, "Loading...");
     lv_label_set_text(ui_temperature, "--");
@@ -214,6 +235,9 @@ void setup() {
     while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
     Serial.println("\nWiFi Connected!");
     
+    // <<< ДОДАНО: оновлення іконки WiFi після підключення >>>
+    update_wifi_status_icon();
+
     update_weather();
     
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
@@ -225,5 +249,16 @@ void setup() {
 
 void loop() {
     lv_timer_handler();
+
+    // <<< ДОДАНО: періодична перевірка статусу WiFi >>>
+    static uint32_t last_wifi_check = 0;
+    if (millis() - last_wifi_check > 2000) {
+        // Додатково перевіряємо, чи не в режимі затемнення, щоб не показувати іконки на чорному екрані
+        if (!is_dimmed) {
+            update_wifi_status_icon();
+        }
+        last_wifi_check = millis();
+    }
+    
     delay(5);
 }

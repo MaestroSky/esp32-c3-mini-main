@@ -1,10 +1,11 @@
 SET(SOURCES ui_Screen1.c
+    ui_Screen2.c
     ui.c
     ui_comp_hook.c
     ui_helpers.c
     ui_img_2081802504.c
-    ui_img_cloud_png.c
     ui_img_wifion_png.c
-    ui_img_wifioff_png.c)
+    ui_img_wifioff_png.c
+    ui_img_2013642630.c)
 
 add_library(ui ${SOURCES})
