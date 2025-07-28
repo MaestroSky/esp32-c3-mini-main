@@ -4,33 +4,31 @@ SET(SOURCES ui_Screen1.c
     ui_helpers.c
     ui_img_2081802504.c
     ui_img_wifion_png.c
-    ui_img_wifioff_png.c
-    ui_img_2013642630.c
+    ui_img_partlycloudy_png.c
     ui_img_blizzard_png.c
-    ui_img_345481163.c
-    ui_img_1383777379.c
-    ui_img_996087739.c
+    ui_img_blowingsnow_png.c
+    ui_img_clearnight_png.c
     ui_img_cloudy_png.c
-    ui_img_1411788627.c
-    ui_img_177608572.c
+    ui_img_cloudycleartimes_png.c
+    ui_img_cloudycleartimesnight_png.c
     ui_img_drizzle_png.c
+    ui_img_drizzlenight_png.c
+    ui_img_drizzlesun_png.c
     ui_img_fog_png.c
     ui_img_hail_png.c
-    ui_img_368706879.c
+    ui_img_heavyrain_png.c
     ui_img_humidity_png.c
-    ui_img_68068241.c
-    ui_img_1043026700.c
-    ui_img_1462637809.c
-    ui_img_1128119850.c
-    ui_img_2145098084.c
+    ui_img_partlycloudynight_png.c
     ui_img_rain_png.c
-    ui_img_223749859.c
-    ui_img_2101116832.c
-    ui_img_710556636.c
-    ui_img_17412894.c
+    ui_img_rainnight_png.c
+    ui_img_rainsun_png.c
+    ui_img_rainthunderstorm_png.c
+    ui_img_scatteradshowers_png.c
+    ui_img_scatteradshowersnight_png.c
+    ui_img_scatteradthunderstorm_png.c
+    ui_img_severthunderstorm_png.c
     ui_img_sleet_png.c
     ui_img_snow_png.c
-    ui_img_sunny_png.c
-    ui_img_wind_png.c)
+    ui_img_sunny_png.c)
 
 add_library(ui ${SOURCES})

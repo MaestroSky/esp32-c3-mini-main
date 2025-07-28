@@ -24,9 +24,14 @@ extern lv_obj_t * ui_temperature;
 extern lv_obj_t * ui_celsius;
 extern lv_obj_t * ui_date;
 extern lv_obj_t * ui_WiFiON;
-extern lv_obj_t * ui_WiFiOFF;
 extern lv_obj_t * ui_WeatherIcon;
-extern lv_obj_t * ui_blizzard;
+extern lv_obj_t * ui_Image1;
+extern lv_obj_t * ui_Image2;
+extern lv_obj_t * ui_Image3;
+extern lv_obj_t * ui_Image4;
+extern lv_obj_t * ui_Image5;
+extern lv_obj_t * ui_Image6;
+extern lv_obj_t * ui_Image7;
 extern lv_obj_t * ui_Image8;
 extern lv_obj_t * ui_Image9;
 extern lv_obj_t * ui_Image10;
@@ -46,14 +51,6 @@ extern lv_obj_t * ui_Image23;
 extern lv_obj_t * ui_Image24;
 extern lv_obj_t * ui_Image25;
 extern lv_obj_t * ui_Image26;
-extern lv_obj_t * ui_Image27;
-extern lv_obj_t * ui_Image28;
-extern lv_obj_t * ui_Image29;
-extern lv_obj_t * ui_Image30;
-extern lv_obj_t * ui_Image31;
-extern lv_obj_t * ui_Image32;
-extern lv_obj_t * ui_Image33;
-extern lv_obj_t * ui_Image34;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus
