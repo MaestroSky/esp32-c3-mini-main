@@ -53,6 +53,10 @@ extern lv_obj_t * ui_Image24;
 extern lv_obj_t * ui_Image25;
 extern lv_obj_t * ui_Image26;
 extern lv_obj_t * ui_WIFIOFF;
+extern lv_obj_t * ui_SettingsPanel;
+extern void ui_event_Down(lv_event_t * e);
+extern lv_obj_t * ui_Down;
+extern lv_obj_t * ui_Upp;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

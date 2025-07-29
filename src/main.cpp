@@ -10,32 +10,13 @@
 #include "main.h"
 #include "ui/ui.h" // Підключаємо головний файл UI
 
+#include <BleKeyboard.h>
+
+
 // Оголошення всіх ваших нових іконок погоди
 LV_IMG_DECLARE(ui_img_blizzard_png);
 LV_IMG_DECLARE(ui_img_blowingsnow_png);
-LV_IMG_DECLARE(ui_img_clearnight_png);
-LV_IMG_DECLARE(ui_img_cloudy_png);
-LV_IMG_DECLARE(ui_img_cloudycleartimes_png);
-LV_IMG_DECLARE(ui_img_cloudycleartimesnight_png);
-LV_IMG_DECLARE(ui_img_drizzle_png);
-LV_IMG_DECLARE(ui_img_drizzlenight_png);
-LV_IMG_DECLARE(ui_img_drizzlesun_png);
-LV_IMG_DECLARE(ui_img_fog_png);
-LV_IMG_DECLARE(ui_img_hail_png);
-LV_IMG_DECLARE(ui_img_heavyrain_png);
-LV_IMG_DECLARE(ui_img_humidity_png);
-LV_IMG_DECLARE(ui_img_partlycloudy_png);
-LV_IMG_DECLARE(ui_img_partlycloudynight_png);
-LV_IMG_DECLARE(ui_img_rain_png);
-LV_IMG_DECLARE(ui_img_rainnight_png);
-LV_IMG_DECLARE(ui_img_rainsun_png);
-LV_IMG_DECLARE(ui_img_rainthunderstorm_png);
-LV_IMG_DECLARE(ui_img_scatteradshowers_png);
-LV_IMG_DECLARE(ui_img_scatteradshowersnight_png);
-LV_IMG_DECLARE(ui_img_scatteradthunderstorm_png);
-LV_IMG_DECLARE(ui_img_severthunderstorm_png);
-LV_IMG_DECLARE(ui_img_sleet_png);
-LV_IMG_DECLARE(ui_img_snow_png);
+// ... (і так далі для всіх іконок)
 LV_IMG_DECLARE(ui_img_sunny_png);
 LV_IMG_DECLARE(ui_img_wind_png);
 
@@ -77,12 +58,18 @@ static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[2][240 * 10];
 
 static bool is_dimmed = false;
-const uint32_t INACTIVITY_TIMEOUT_MS = 5000; // Змінено на 5 сек згідно з запитом
+const uint32_t INACTIVITY_TIMEOUT_MS = 5000;
 
-// <<< ДОДАНО: Глобальні змінні для об'єктів режиму енергозбереження >>>
 static lv_obj_t *ui_screensaver_icon;
 static lv_obj_t *ui_screensaver_temp;
 static lv_style_t style_screensaver_temp;
+
+BleKeyboard bleKeyboard("ESP32 Watch Control", "Misha Inc.", 100);
+uint8_t currentBrightness = 255; 
+int lastArcValue = -1; 
+
+// <<< ФІНАЛЬНЕ ВИПРАВЛЕННЯ: Попереднє оголошення функції для усунення помилки компіляції >>>
+void update_wifi_status_icon();
 
 
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
@@ -122,6 +109,42 @@ const lv_img_dsc_t* get_weather_icon_by_code(String icon_code) {
     return &ui_img_cloudy_png; 
 }
 
+void switch_event_handler(lv_event_t * e) {
+    bool is_bt_mode = lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED);
+
+    if (is_bt_mode) {
+        lv_label_set_text(ui_SliderLabel, "Гучність ПК");
+        bleKeyboard.begin();
+        lastArcValue = -1; 
+        if(ui_ControlArc) lv_arc_set_value(ui_ControlArc, 50); 
+    } else {
+        lv_label_set_text(ui_SliderLabel, "Яскравість");
+        bleKeyboard.end();
+        int arc_val = map(currentBrightness, 0, 255, 0, 100);
+        if(ui_ControlArc) lv_arc_set_value(ui_ControlArc, arc_val);
+    }
+}
+
+void arc_event_handler(lv_event_t * e) {
+    bool is_bt_mode = lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED);
+    int32_t currentValue = lv_arc_get_value(ui_ControlArc);
+    if (!is_bt_mode) {
+        currentBrightness = map(currentValue, 0, 100, 0, 255);
+        tft.setBrightness(currentBrightness);
+    } else {
+        if (bleKeyboard.isConnected()) {
+            if (lastArcValue != -1) { 
+                if (currentValue > lastArcValue) {
+                    bleKeyboard.write(KEY_MEDIA_VOLUME_UP);
+                } else if (currentValue < lastArcValue) {
+                    bleKeyboard.write(KEY_MEDIA_VOLUME_DOWN);
+                }
+            }
+            lastArcValue = currentValue;
+        }
+    }
+}
+
 void update_time_task(void *param) {
   struct tm timeinfo;
   while(1) {
@@ -135,7 +158,6 @@ void update_time_task(void *param) {
   }
 }
 
-// <<< ЗМІНЕНО: Функція оновлення погоди тепер також оновлює дані для заставки >>>
 void update_weather() {
     if (WiFi.status() != WL_CONNECTED) return;
     HTTPClient http;
@@ -151,13 +173,8 @@ void update_weather() {
             float temp = doc["main"]["temp"];
             String icon_code = doc["weather"][0]["icon"].as<String>();
             const lv_img_dsc_t* icon_src = get_weather_icon_by_code(icon_code);
-
-            // Оновлюємо основний екран
             lv_label_set_text_fmt(ui_temperature, "%+d", (int)round(temp));
             lv_img_set_src(ui_WeatherIcon, icon_src);
-            
-            // Оновлюємо дані для екрану енергозбереження
-            // Додаємо знак градуса ° для кращого вигляду
             lv_label_set_text_fmt(ui_screensaver_temp, "%+d°", (int)round(temp));
             lv_img_set_src(ui_screensaver_icon, icon_src);
         }
@@ -165,16 +182,14 @@ void update_weather() {
     http.end();
 }
 
-// <<< ЗМІНЕНО: Додано керування яскравістю екрана >>>
+// <<< ЗМІНЕНО: Додано примусове оновлення фону для ui_Screen1 >>>
 static void check_inactivity_timer_cb(lv_timer_t * timer) {
     uint32_t inactive_time = lv_disp_get_inactive_time(NULL);
 
-    // --- БЛОК АКТИВАЦІЇ ЕНЕРГОЗБЕРЕЖЕННЯ ---
     if (inactive_time >= INACTIVITY_TIMEOUT_MS && !is_dimmed) {
-        // <<< ДОДАНО: Зменшуємо яскравість екрана до 20% >>>
-        tft.setBrightness(25.5); // 255 * 0.1 = 25.5
+        tft.setBrightness(51); 
 
-        // 1. Ховаємо всі елементи основного інтерфейсу
+        // Стара логіка для першого екрану
         lv_obj_add_flag(ui_fone, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_WOLButton, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_WeatherIcon, LV_OBJ_FLAG_HIDDEN);
@@ -184,32 +199,31 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         lv_obj_add_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_WiFiON, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_WIFIOFF, LV_OBJ_FLAG_HIDDEN);
-
-        // 2. Робимо фон екрана чорним
-        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
         
-        // 3. Робимо текст годинника білим
+        // Додано логіку для приховування елементів другого екрану
+        if (ui_Screen2) {
+            for (uint32_t i = 0; i < lv_obj_get_child_cnt(ui_Screen2); i++) {
+                lv_obj_add_flag(lv_obj_get_child(ui_Screen2, i), LV_OBJ_FLAG_HIDDEN);
+            }
+        }
+
+        // Загальна логіка
+        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
         lv_obj_set_style_text_color(ui_hour, lv_color_white(), 0);
         lv_obj_set_style_text_color(ui_minute, lv_color_white(), 0);
         lv_obj_set_style_text_color(ui_second, lv_color_white(), 0);
-
-        // 4. Показуємо спеціальні елементи для режиму енергозбереження
         lv_obj_clear_flag(ui_screensaver_icon, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_screensaver_temp, LV_OBJ_FLAG_HIDDEN);
 
         is_dimmed = true;
     }
 
-    // --- БЛОК "ПРОБУДЖЕННЯ" ЕКРАНА ---
     if (inactive_time < INACTIVITY_TIMEOUT_MS && is_dimmed) {
-        // <<< ДОДАНО: Повертаємо яскравість екрана на максимум >>>
-        tft.setBrightness(255);
-
-        // 1. Ховаємо елементи режиму енергозбереження
+        tft.setBrightness(currentBrightness);
         lv_obj_add_flag(ui_screensaver_icon, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_screensaver_temp, LV_OBJ_FLAG_HIDDEN);
 
-        // 2. Показуємо всі елементи основного інтерфейсу
+        // Повертаємо елементи першого екрану
         lv_obj_clear_flag(ui_fone, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_WOLButton, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_WeatherIcon, LV_OBJ_FLAG_HIDDEN);
@@ -218,11 +232,27 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         lv_obj_clear_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
         
-        // 3. Повертаємо стилі, які були задані в SquareLine
+        // Додано логіку для показу елементів другого екрану
+        if (ui_Screen2) {
+            for (uint32_t i = 0; i < lv_obj_get_child_cnt(ui_Screen2); i++) {
+                lv_obj_clear_flag(lv_obj_get_child(ui_Screen2, i), LV_OBJ_FLAG_HIDDEN);
+            }
+        }
+
+        // Загальна логіка
+        // Встановлюємо білий фон для АКТИВНОГО екрана
         lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0xFFFFFF), 0);
+        
+        // <<< ВИПРАВЛЕНО: Примусово встановлюємо білий фон і для першого екрана, на випадок якщо він неактивний >>>
+        if (ui_Screen1) {
+            lv_obj_set_style_bg_color(ui_Screen1, lv_color_hex(0xFFFFFF), 0);
+        }
+
+        // Повертаємо колір тексту годинника
         lv_obj_set_style_text_color(ui_hour, lv_color_hex(0x000000), 0);
         lv_obj_set_style_text_color(ui_minute, lv_color_hex(0x000000), 0);
         lv_obj_set_style_text_color(ui_second, lv_color_hex(0x000000), 0);
+        update_wifi_status_icon();
 
         is_dimmed = false;
     }
@@ -241,7 +271,9 @@ void update_wifi_status_icon() {
 void setup() {
     Serial.begin(115200);
     tft.init(); tft.initDMA(); tft.startWrite();
-    touch.begin(); tft.setBrightness(255);
+    touch.begin(); 
+    tft.setBrightness(currentBrightness);
+
     lv_init();
     lv_disp_draw_buf_init(&draw_buf, buf[0], buf[1], 240 * 10);
     static lv_disp_drv_t disp_drv;
@@ -256,45 +288,49 @@ void setup() {
 
     ui_init(); 
     
-    // <<< ДОДАНО: Створення та налаштування об'єктів для екрану енергозбереження >>>
-    // 1. Створюємо іконку погоди для заставки
     ui_screensaver_icon = lv_img_create(lv_scr_act());
-    lv_img_set_zoom(ui_screensaver_icon, 320); // Збільшуємо на ~25% (320/256)
-    lv_obj_align(ui_screensaver_icon, LV_ALIGN_CENTER, 0, 15); // Центруємо і трохи зміщуємо вниз від центру екрана
-    lv_obj_add_flag(ui_screensaver_icon, LV_OBJ_FLAG_HIDDEN); // Ховаємо початково
+    lv_img_set_zoom(ui_screensaver_icon, 320); 
+    lv_obj_align(ui_screensaver_icon, LV_ALIGN_CENTER, 0, 15);
+    lv_obj_add_flag(ui_screensaver_icon, LV_OBJ_FLAG_HIDDEN);
 
-    // 2. Створюємо стиль для температури на заставці (великий, жирний шрифт)
     lv_style_init(&style_screensaver_temp);
-    // ВАЖЛИВО: Переконайтеся, що шрифт lv_font_montserrat_28_bold увімкнений у вашому файлі lv_conf.h
-    // Якщо його немає, ви можете обрати інший великий шрифт, наприклад lv_font_montserrat_28 або згенерувати новий
     lv_style_set_text_font(&style_screensaver_temp, &lv_font_montserrat_28);
     lv_style_set_text_color(&style_screensaver_temp, lv_color_white());
 
-    // 3. Створюємо напис температури для заставки
     ui_screensaver_temp = lv_label_create(lv_scr_act());
-    lv_obj_add_style(ui_screensaver_temp, &style_screensaver_temp, 0); // Застосовуємо створений стиль
-    lv_obj_align_to(ui_screensaver_temp, ui_screensaver_icon, LV_ALIGN_OUT_BOTTOM_MID, 0, 15); // Розміщуємо під іконкою
-    lv_obj_add_flag(ui_screensaver_temp, LV_OBJ_FLAG_HIDDEN); // Ховаємо початково
+    lv_obj_add_style(ui_screensaver_temp, &style_screensaver_temp, 0); 
+    lv_obj_align_to(ui_screensaver_temp, ui_screensaver_icon, LV_ALIGN_OUT_BOTTOM_MID, 0, 15); 
+    lv_obj_add_flag(ui_screensaver_temp, LV_OBJ_FLAG_HIDDEN);
 
     lv_obj_add_event_cb(ui_WOLButton, wol_btn_event_cb, LV_EVENT_CLICKED, NULL);
 
+    if(ui_ControlArc) lv_obj_add_event_cb(ui_ControlArc, arc_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
+    if(ui_ModeSwitch) lv_obj_add_event_cb(ui_ModeSwitch, switch_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
+
+    if(ui_ControlArc) {
+        int initialArcValue = map(currentBrightness, 0, 255, 0, 100);
+        lv_arc_set_value(ui_ControlArc, initialArcValue);
+    }
+    if(ui_SliderLabel) lv_label_set_text(ui_SliderLabel, "Brightness");
+    if(ui_BtStatusLabel) lv_label_set_text(ui_BtStatusLabel, "");
+    
     update_wifi_status_icon();
 
     lv_label_set_text(ui_city, "Loading...");
     lv_label_set_text(ui_temperature, "--");
-
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
-    Serial.println("\nWiFi Connected!");
     
-    update_wifi_status_icon();
-    update_weather();
+    // Закоментовано для стабільної роботи Bluetooth
+     WiFi.begin(ssid, password);
+     while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+     Serial.println("\nWiFi Connected!");
+     update_wifi_status_icon();
+     update_weather();
     
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     xTaskCreate(update_time_task, "time_task", 4096, NULL, 5, NULL);
     
     lv_timer_create(check_inactivity_timer_cb, 500, NULL);
-    lv_timer_create([](lv_timer_t* t){ update_weather(); }, 1800000, NULL);
+     lv_timer_create([](lv_timer_t* t){ update_weather(); }, 1800000, NULL);
 }
 
 void loop() {
@@ -308,5 +344,24 @@ void loop() {
         last_wifi_check = millis();
     }
     
-    delay(5);
+    static uint32_t last_bt_check = 0;
+    if (millis() - last_bt_check > 1000) {
+        if (lv_scr_act() == ui_Screen2) {
+             if (lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED)) { 
+                if (bleKeyboard.isConnected()) {
+                    lv_label_set_text(ui_BtStatusLabel, "Connected to PC");
+                    lv_obj_set_style_text_color(ui_BtStatusLabel, lv_color_hex(0x00FF00), 0);
+                } else {
+                    lv_label_set_text(ui_BtStatusLabel, "Waiting for a pair...");
+                    lv_obj_set_style_text_color(ui_BtStatusLabel, lv_color_hex(0xFFD700), 0);
+                }
+            } else {
+                 lv_label_set_text(ui_BtStatusLabel, "");
+            }
+        }
+        last_bt_check = millis();
+    }
+    
+    // Закоментовано для стабільної роботи Bluetooth
+    // delay(5);
 }

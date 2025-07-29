@@ -6,8 +6,8 @@
 #include "ui.h"
 
 lv_obj_t * ui_Screen2 = NULL;
-lv_obj_t * ui_ControlArc = NULL;
 lv_obj_t * ui_Fone2 = NULL;
+lv_obj_t * ui_ControlArc = NULL;
 lv_obj_t * ui_ModeSwitch = NULL;
 lv_obj_t * ui_SliderLabel = NULL;
 lv_obj_t * ui_BtStatusLabel = NULL;
@@ -29,12 +29,6 @@ void ui_Screen2_screen_init(void)
     ui_Screen2 = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_Screen2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
-    ui_ControlArc = lv_arc_create(ui_Screen2);
-    lv_obj_set_width(ui_ControlArc, 235);
-    lv_obj_set_height(ui_ControlArc, 235);
-    lv_obj_set_align(ui_ControlArc, LV_ALIGN_CENTER);
-    lv_arc_set_value(ui_ControlArc, 50);
-
     ui_Fone2 = lv_img_create(ui_Screen2);
     lv_img_set_src(ui_Fone2, &ui_img_2081802504);
     lv_obj_set_width(ui_Fone2, LV_SIZE_CONTENT);   /// 220
@@ -42,6 +36,12 @@ void ui_Screen2_screen_init(void)
     lv_obj_set_align(ui_Fone2, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_Fone2, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
     lv_obj_clear_flag(ui_Fone2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_ControlArc = lv_arc_create(ui_Screen2);
+    lv_obj_set_width(ui_ControlArc, 200);
+    lv_obj_set_height(ui_ControlArc, 200);
+    lv_obj_set_align(ui_ControlArc, LV_ALIGN_CENTER);
+    lv_arc_set_value(ui_ControlArc, 50);
 
     ui_ModeSwitch = lv_switch_create(ui_Screen2);
     lv_obj_set_width(ui_ModeSwitch, 50);
@@ -77,8 +77,8 @@ void ui_Screen2_screen_destroy(void)
 
     // NULL screen variables
     ui_Screen2 = NULL;
-    ui_ControlArc = NULL;
     ui_Fone2 = NULL;
+    ui_ControlArc = NULL;
     ui_ModeSwitch = NULL;
     ui_SliderLabel = NULL;
     ui_BtStatusLabel = NULL;
