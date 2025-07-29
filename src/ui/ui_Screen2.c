@@ -56,7 +56,7 @@ void ui_Screen2_screen_init(void)
     lv_obj_set_y(ui_SliderLabel, -20);
     lv_obj_set_align(ui_SliderLabel, LV_ALIGN_CENTER);
     lv_label_set_text(ui_SliderLabel, "50");
-    lv_obj_set_style_text_font(ui_SliderLabel, &lv_font_montserrat_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_SliderLabel, &ui_font_CyrillicFont48, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     lv_obj_add_event_cb(ui_Screen2, ui_event_Screen2, LV_EVENT_ALL, NULL);
 

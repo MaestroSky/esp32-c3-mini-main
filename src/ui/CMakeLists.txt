@@ -35,6 +35,8 @@ SET(SOURCES ui_Screen1.c
     ui_img_wifioff_png.c
     ui_img_bluetooth_png.c
     ui_img_up_png.c
-    ui_img_down_png.c)
+    ui_img_down_png.c
+    fonts/ui_font_CyrillicFont16.c
+    fonts/ui_font_CyrillicFont48.c)
 
 add_library(ui ${SOURCES})

@@ -94,7 +94,6 @@ static lv_obj_t *ui_screensaver_icon;
 static lv_obj_t *ui_screensaver_temp;
 static lv_style_t style_screensaver_temp;
 
-// <<< ДОДАНО: Глобальний об'єкт BleKeyboard та прапорець стану >>>
 BleKeyboard bleKeyboard("ESP32 Watch Control", "Misha Inc.", 100);
 bool bleKeyboardStarted = false;
 
@@ -141,23 +140,17 @@ const lv_img_dsc_t* get_weather_icon_by_code(String icon_code) {
     return &ui_img_cloudy_png; 
 }
 
-// <<< ЗМІНЕНО: Універсальний обробник для Arc, що працює в обох режимах >>>
 void arc_event_handler(lv_event_t * e) {
     int32_t currentValue = lv_arc_get_value(ui_ControlArc);
     bool is_volume_mode = lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED);
 
     if (!is_volume_mode) {
-        // РЕЖИМ ЯСКРАВОСТІ
         currentBrightness = map(currentValue, 0, 100, 0, 255);
         tft.setBrightness(currentBrightness);
         if (ui_SliderLabel) {
             lv_label_set_text_fmt(ui_SliderLabel, "%d", currentValue);
         }
     } else {
-        // РЕЖИМ ГУЧНОСТІ
-        if (ui_SliderLabel) {
-            lv_label_set_text(ui_SliderLabel, "50");
-        }
         if (bleKeyboard.isConnected()) {
             if (lastArcValue != -1) { 
                 if (currentValue > lastArcValue) {
@@ -171,13 +164,12 @@ void arc_event_handler(lv_event_t * e) {
     }
 }
 
-// <<< ДОДАНО: Обробник для перемикача режимів ModeSwitch >>>
 void switch_event_handler(lv_event_t * e) {
     bool is_volume_mode = lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED);
-    lastArcValue = -1; // Скидаємо значення
+    lastArcValue = -1;
 
     if (is_volume_mode) {
-        lv_label_set_text(ui_SliderLabel, "50");
+        lv_label_set_text(ui_SliderLabel, "Гучність");
         lv_arc_set_value(ui_ControlArc, 50);
     } else {
         int brightness_percent = map(currentBrightness, 0, 255, 0, 100);
@@ -186,7 +178,6 @@ void switch_event_handler(lv_event_t * e) {
     }
 }
 
-// <<< ДОДАНО: Обробник для головного перемикача живлення Bluetooth >>>
 void bluetooth_power_switch_event_cb(lv_event_t * e) {
     lv_obj_t* target_switch = lv_event_get_target(e);
     if (lv_obj_has_state(target_switch, LV_STATE_CHECKED)) {
@@ -373,7 +364,6 @@ void setup() {
 
     lv_obj_add_event_cb(ui_WOLButton, wol_btn_event_cb, LV_EVENT_CLICKED, NULL);
 
-    // <<< ЗМІНЕНО: Прив'язуємо оновлений обробник до ControlArc >>>
     if (ui_ControlArc) {
         lv_obj_add_event_cb(ui_ControlArc, arc_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
         int initialArcValue = map(currentBrightness, 0, 255, 0, 100);
@@ -383,7 +373,6 @@ void setup() {
         }
     }
     
-    // <<< ДОДАНО: Прив'язуємо новий обробник до ModeSwitch >>>
     if(ui_ModeSwitch) {
         lv_obj_add_event_cb(ui_ModeSwitch, switch_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
     }

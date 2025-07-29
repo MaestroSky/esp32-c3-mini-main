@@ -79,6 +79,10 @@ LV_IMG_DECLARE(ui_img_bluetooth_png);    // assets/Bluetooth.png
 LV_IMG_DECLARE(ui_img_up_png);    // assets/Up.png
 LV_IMG_DECLARE(ui_img_down_png);    // assets/Down.png
 
+// FONTS
+LV_FONT_DECLARE(ui_font_CyrillicFont16);
+LV_FONT_DECLARE(ui_font_CyrillicFont48);
+
 // UI INIT
 void ui_init(void);
 void ui_destroy(void);

@@ -148,6 +148,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_y(ui_city, -5);
     lv_obj_set_align(ui_city, LV_ALIGN_CENTER);
     lv_label_set_text(ui_city, "Kherson");
+    lv_obj_set_style_text_font(ui_city, &ui_font_CyrillicFont16, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_temperature = lv_label_create(ui_Screen1);
     lv_obj_set_width(ui_temperature, LV_SIZE_CONTENT);   /// 1
