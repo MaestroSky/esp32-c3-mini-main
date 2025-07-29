@@ -38,8 +38,8 @@ void ui_Screen2_screen_init(void)
     lv_obj_clear_flag(ui_Fone2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_ControlArc = lv_arc_create(ui_Screen2);
-    lv_obj_set_width(ui_ControlArc, 200);
-    lv_obj_set_height(ui_ControlArc, 200);
+    lv_obj_set_width(ui_ControlArc, 180);
+    lv_obj_set_height(ui_ControlArc, 180);
     lv_obj_set_align(ui_ControlArc, LV_ALIGN_CENTER);
     lv_arc_set_value(ui_ControlArc, 50);
 

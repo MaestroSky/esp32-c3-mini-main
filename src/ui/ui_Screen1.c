@@ -45,8 +45,10 @@ lv_obj_t * ui_Image25 = NULL;
 lv_obj_t * ui_Image26 = NULL;
 lv_obj_t * ui_WIFIOFF = NULL;
 lv_obj_t * ui_SettingsPanel = NULL;
-lv_obj_t * ui_Down = NULL;
+lv_obj_t * ui_BluetoothSwitch = NULL;
+lv_obj_t * ui_Bluetooth = NULL;
 lv_obj_t * ui_Upp = NULL;
+lv_obj_t * ui_Down = NULL;
 // event funtions
 void ui_event_Screen1(lv_event_t * e)
 {
@@ -55,6 +57,17 @@ void ui_event_Screen1(lv_event_t * e)
     if(event_code == LV_EVENT_GESTURE &&  lv_indev_get_gesture_dir(lv_indev_get_act()) == LV_DIR_LEFT) {
         lv_indev_wait_release(lv_indev_get_act());
         _ui_screen_change(&ui_Screen2, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, &ui_Screen2_screen_init);
+    }
+}
+
+void ui_event_Upp(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        UpAnim_Animation(ui_SettingsPanel, 50);
+        _ui_flag_modify(ui_Upp, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+        _ui_flag_modify(ui_Down, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
     }
 }
 
@@ -457,25 +470,32 @@ void ui_Screen1_screen_init(void)
     lv_obj_clear_flag(ui_WIFIOFF, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_SettingsPanel = lv_obj_create(ui_Screen1);
-    lv_obj_set_width(ui_SettingsPanel, 240);
-    lv_obj_set_height(ui_SettingsPanel, 240);
+    lv_obj_set_width(ui_SettingsPanel, 250);
+    lv_obj_set_height(ui_SettingsPanel, 250);
     lv_obj_set_x(ui_SettingsPanel, 0);
     lv_obj_set_y(ui_SettingsPanel, -210);
     lv_obj_set_align(ui_SettingsPanel, LV_ALIGN_CENTER);
     lv_obj_clear_flag(ui_SettingsPanel, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-    lv_obj_set_style_radius(ui_SettingsPanel, 120, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_color(ui_SettingsPanel, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(ui_SettingsPanel, 150, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(ui_SettingsPanel, 125, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_SettingsPanel, lv_color_hex(0x323232), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_SettingsPanel, 225, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    ui_Down = lv_img_create(ui_Screen1);
-    lv_img_set_src(ui_Down, &ui_img_down_png);
-    lv_obj_set_width(ui_Down, LV_SIZE_CONTENT);   /// 28
-    lv_obj_set_height(ui_Down, LV_SIZE_CONTENT);    /// 20
-    lv_obj_set_x(ui_Down, 0);
-    lv_obj_set_y(ui_Down, -105);
-    lv_obj_set_align(ui_Down, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_Down, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
-    lv_obj_clear_flag(ui_Down, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    ui_BluetoothSwitch = lv_switch_create(ui_SettingsPanel);
+    lv_obj_set_width(ui_BluetoothSwitch, 50);
+    lv_obj_set_height(ui_BluetoothSwitch, 25);
+    lv_obj_set_x(ui_BluetoothSwitch, 30);
+    lv_obj_set_y(ui_BluetoothSwitch, -75);
+    lv_obj_set_align(ui_BluetoothSwitch, LV_ALIGN_CENTER);
+
+    ui_Bluetooth = lv_img_create(ui_SettingsPanel);
+    lv_img_set_src(ui_Bluetooth, &ui_img_bluetooth_png);
+    lv_obj_set_width(ui_Bluetooth, LV_SIZE_CONTENT);   /// 26
+    lv_obj_set_height(ui_Bluetooth, LV_SIZE_CONTENT);    /// 20
+    lv_obj_set_x(ui_Bluetooth, -30);
+    lv_obj_set_y(ui_Bluetooth, -75);
+    lv_obj_set_align(ui_Bluetooth, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_Bluetooth, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
+    lv_obj_clear_flag(ui_Bluetooth, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_Upp = lv_img_create(ui_Screen1);
     lv_img_set_src(ui_Upp, &ui_img_up_png);
@@ -484,9 +504,20 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_x(ui_Upp, 0);
     lv_obj_set_y(ui_Upp, 105);
     lv_obj_set_align(ui_Upp, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_Upp, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
+    lv_obj_add_flag(ui_Upp, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
     lv_obj_clear_flag(ui_Upp, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+    ui_Down = lv_img_create(ui_Screen1);
+    lv_img_set_src(ui_Down, &ui_img_down_png);
+    lv_obj_set_width(ui_Down, LV_SIZE_CONTENT);   /// 28
+    lv_obj_set_height(ui_Down, LV_SIZE_CONTENT);    /// 20
+    lv_obj_set_x(ui_Down, 0);
+    lv_obj_set_y(ui_Down, -105);
+    lv_obj_set_align(ui_Down, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_Down, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
+    lv_obj_clear_flag(ui_Down, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    lv_obj_add_event_cb(ui_Upp, ui_event_Upp, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Down, ui_event_Down, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Screen1, ui_event_Screen1, LV_EVENT_ALL, NULL);
 
@@ -537,7 +568,9 @@ void ui_Screen1_screen_destroy(void)
     ui_Image26 = NULL;
     ui_WIFIOFF = NULL;
     ui_SettingsPanel = NULL;
-    ui_Down = NULL;
+    ui_BluetoothSwitch = NULL;
+    ui_Bluetooth = NULL;
     ui_Upp = NULL;
+    ui_Down = NULL;
 
 }

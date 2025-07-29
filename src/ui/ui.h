@@ -75,8 +75,9 @@ LV_IMG_DECLARE(ui_img_sleet_png);    // assets/Sleet.png
 LV_IMG_DECLARE(ui_img_snow_png);    // assets/Snow.png
 LV_IMG_DECLARE(ui_img_sunny_png);    // assets/sunny.png
 LV_IMG_DECLARE(ui_img_wifioff_png);    // assets/WiFiOFF.png
-LV_IMG_DECLARE(ui_img_down_png);    // assets/Down.png
+LV_IMG_DECLARE(ui_img_bluetooth_png);    // assets/Bluetooth.png
 LV_IMG_DECLARE(ui_img_up_png);    // assets/Up.png
+LV_IMG_DECLARE(ui_img_down_png);    // assets/Down.png
 
 // UI INIT
 void ui_init(void);

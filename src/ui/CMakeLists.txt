@@ -33,7 +33,8 @@ SET(SOURCES ui_Screen1.c
     ui_img_snow_png.c
     ui_img_sunny_png.c
     ui_img_wifioff_png.c
-    ui_img_down_png.c
-    ui_img_up_png.c)
+    ui_img_bluetooth_png.c
+    ui_img_up_png.c
+    ui_img_down_png.c)
 
 add_library(ui ${SOURCES})
