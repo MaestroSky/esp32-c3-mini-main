@@ -19,7 +19,6 @@ extern lv_obj_t * ui_Fone2;
 extern lv_obj_t * ui_ControlArc;
 extern lv_obj_t * ui_ModeSwitch;
 extern lv_obj_t * ui_SliderLabel;
-extern lv_obj_t * ui_BtStatusLabel;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

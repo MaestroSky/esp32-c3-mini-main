@@ -10,7 +10,6 @@ lv_obj_t * ui_Fone2 = NULL;
 lv_obj_t * ui_ControlArc = NULL;
 lv_obj_t * ui_ModeSwitch = NULL;
 lv_obj_t * ui_SliderLabel = NULL;
-lv_obj_t * ui_BtStatusLabel = NULL;
 // event funtions
 void ui_event_Screen2(lv_event_t * e)
 {
@@ -54,18 +53,10 @@ void ui_Screen2_screen_init(void)
     lv_obj_set_width(ui_SliderLabel, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_SliderLabel, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_x(ui_SliderLabel, 0);
-    lv_obj_set_y(ui_SliderLabel, -19);
+    lv_obj_set_y(ui_SliderLabel, -20);
     lv_obj_set_align(ui_SliderLabel, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_SliderLabel, "Brightness");
-    lv_obj_set_style_text_font(ui_SliderLabel, &lv_font_montserrat_16, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_BtStatusLabel = lv_label_create(ui_Screen2);
-    lv_obj_set_width(ui_BtStatusLabel, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_BtStatusLabel, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_BtStatusLabel, -3);
-    lv_obj_set_y(ui_BtStatusLabel, 10);
-    lv_obj_set_align(ui_BtStatusLabel, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_BtStatusLabel, "");
+    lv_label_set_text(ui_SliderLabel, "50");
+    lv_obj_set_style_text_font(ui_SliderLabel, &lv_font_montserrat_48, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     lv_obj_add_event_cb(ui_Screen2, ui_event_Screen2, LV_EVENT_ALL, NULL);
 
@@ -81,6 +72,5 @@ void ui_Screen2_screen_destroy(void)
     ui_ControlArc = NULL;
     ui_ModeSwitch = NULL;
     ui_SliderLabel = NULL;
-    ui_BtStatusLabel = NULL;
 
 }
