@@ -12,6 +12,8 @@ extern String city;
 extern String macStr;
 extern long gmtOffset_sec;
 extern bool daylightOffset_enabled;
+extern String latest_version;
+extern bool update_available;
 
 // Оголошуємо функції, які будемо викликати з main.cpp
 void setupWebServer();
