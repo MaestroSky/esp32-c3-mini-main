@@ -47,6 +47,7 @@ lv_obj_t * ui_WIFIOFF = NULL;
 lv_obj_t * ui_SettingsPanel = NULL;
 lv_obj_t * ui_BluetoothSwitch = NULL;
 lv_obj_t * ui_Bluetooth = NULL;
+lv_obj_t * ui_Firmware = NULL;
 lv_obj_t * ui_Upp = NULL;
 lv_obj_t * ui_Down = NULL;
 // event funtions
@@ -498,6 +499,16 @@ void ui_Screen1_screen_init(void)
     lv_obj_add_flag(ui_Bluetooth, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
     lv_obj_clear_flag(ui_Bluetooth, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+    ui_Firmware = lv_label_create(ui_SettingsPanel);
+    lv_obj_set_width(ui_Firmware, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Firmware, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Firmware, -1);
+    lv_obj_set_y(ui_Firmware, 73);
+    lv_obj_set_align(ui_Firmware, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Firmware, "Firmware:");
+    lv_obj_set_style_text_color(ui_Firmware, lv_color_hex(0xF1EFEF), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_Firmware, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
     ui_Upp = lv_img_create(ui_Screen1);
     lv_img_set_src(ui_Upp, &ui_img_up_png);
     lv_obj_set_width(ui_Upp, LV_SIZE_CONTENT);   /// 28
@@ -571,6 +582,7 @@ void ui_Screen1_screen_destroy(void)
     ui_SettingsPanel = NULL;
     ui_BluetoothSwitch = NULL;
     ui_Bluetooth = NULL;
+    ui_Firmware = NULL;
     ui_Upp = NULL;
     ui_Down = NULL;
 

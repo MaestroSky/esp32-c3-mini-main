@@ -13,6 +13,7 @@
 #include "esp_bt.h"
 #include <Preferences.h>
 #include "web_server.h"
+#include "qrcode.h" // <-- ДОДАНО INCLUDE
 
 String latest_version = "";
 bool update_available = false;
@@ -100,6 +101,8 @@ bool bleKeyboardStarted = false;
 uint8_t currentBrightness = 255; 
 int lastSnappedValue = -1; 
 static lv_obj_t * version_label;
+static lv_obj_t * qr_canvas;    // <-- ДОДАНО
+static lv_color_t * qr_buf;     // <-- ДОДАНО
 
 // --- Функції ---
 
@@ -130,6 +133,51 @@ void checkForUpdates() {
     }
     http.end();
 }
+
+// <<< ДОДАНО ФУНКЦІЮ ДЛЯ ГЕНЕРАЦІЇ QR-КОДУ >>>
+void displayQrCode(lv_obj_t* parent) {
+    if (WiFi.status() != WL_CONNECTED && WiFi.getMode() != WIFI_AP) return;
+
+    String url = "http://";
+    if(WiFi.getMode() == WIFI_AP) {
+        url += WiFi.softAPIP().toString();
+    } else {
+        url += WiFi.localIP().toString();
+    }
+    
+    // Створення QR коду
+    QRCode qrcode;
+    uint8_t qrcodeData[qrcode_getBufferSize(3)];
+    qrcode_initText(&qrcode, qrcodeData, 3, ECC_LOW, url.c_str());
+
+    // Розміри QR-коду (ширина і висота) та розмір пікселя
+    int qr_size = qrcode.size;
+    int pixel_size = 3; // Збільшуємо кожен піксель до 3x3
+    int canvas_size = qr_size * pixel_size;
+
+    // Створюємо буфер для LVGL канви
+    qr_buf = (lv_color_t*)malloc(LV_CANVAS_BUF_SIZE_TRUE_COLOR(canvas_size, canvas_size));
+    
+    // Створюємо саму канву
+    qr_canvas = lv_canvas_create(parent);
+    lv_canvas_set_buffer(qr_canvas, qr_buf, canvas_size, canvas_size, LV_IMG_CF_TRUE_COLOR);
+    lv_obj_align(qr_canvas, LV_ALIGN_CENTER, 0, 0);
+    lv_canvas_fill_bg(qr_canvas, lv_color_white(), LV_OPA_COVER);
+
+    // Малюємо QR-код на канві
+    lv_draw_rect_dsc_t rect_dsc;
+    lv_draw_rect_dsc_init(&rect_dsc);
+    rect_dsc.bg_color = lv_color_black();
+    
+    for (int y = 0; y < qr_size; y++) {
+        for (int x = 0; x < qr_size; x++) {
+            if (qrcode_getModule(&qrcode, x, y)) {
+                lv_canvas_draw_rect(qr_canvas, x * pixel_size, y * pixel_size, pixel_size, pixel_size, &rect_dsc);
+            }
+        }
+    }
+}
+
 
 void loadSettings() {
   preferences.begin("watch-prefs", false);
@@ -470,12 +518,13 @@ void setup() {
         setupWebServer();
     }
     
-    // <<< ІНТЕГРАЦІЯ ВЕРСІЇ ПРОШИВКИ (БЕЗ QR-КОДУ) >>>
+    // <<< ІНТЕГРАЦІЯ ВЕРСІЇ ПРОШИВКИ ТА QR-КОДУ >>>
     if(ui_SettingsPanel) {
-        // Створюємо мітку для версії прошивки
-        version_label = lv_label_create(ui_SettingsPanel);
-        lv_label_set_text_fmt(version_label, "Ver: %s", FIRMWARE_VERSION);
-        lv_obj_align(version_label, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
+        // Оновлюємо текстову мітку 'Firmware', створену в SLS
+        lv_label_set_text_fmt(ui_Firmware, "Ver: %s", FIRMWARE_VERSION);
+
+        // Генеруємо і показуємо QR-код
+        displayQrCode(ui_SettingsPanel);
     }
     
     lv_timer_create(check_inactivity_timer_cb, 500, NULL);
