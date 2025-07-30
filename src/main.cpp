@@ -13,7 +13,6 @@
 #include "esp_bt.h"
 #include <Preferences.h>
 #include "web_server.h"
-#include "qrcodegen.h" // <-- ВАЖЛИВО: Підключаємо локальну бібліотеку
 
 String latest_version = "";
 bool update_available = false;
@@ -75,7 +74,6 @@ LGFX tft;
 CST816D touch(I2C_SDA, I2C_SCL, TP_RST, TP_INT);
 
 // <<< ГЛОБАЛЬНІ НАЛАШТУВАННЯ ЗАЛИШАЮТЬСЯ ГОЛОВНИМИ ТУТ >>>
-// Модуль web_server буде мати до них доступ через 'extern'
 String ssid = "MaestroSkyHome";
 String password = "maestro19";
 String api_key = "f957aeaeed8744887eaa43ee1b5c43c6"; 
@@ -87,7 +85,7 @@ byte macAddress[] = {0x58, 0x11, 0x22, 0xAF, 0x02, 0xC5};
 String macStr = "58:11:22:AF:02:C5";
 const char* ntpServer = "pool.ntp.org";
 
-// Інші глобальні змінні (без змін)
+// Інші глобальні змінні
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[2][240 * 10];
 enum ScreenState { AWAKE, PARTIALLY_DIMMED, SCREENSAVER };
@@ -101,32 +99,25 @@ BleKeyboard bleKeyboard("ESP32 Watch Control", "Misha Inc.", 100);
 bool bleKeyboardStarted = false;
 uint8_t currentBrightness = 255; 
 int lastSnappedValue = -1; 
-static lv_obj_t * qr_canvas;
-static lv_color_t * qr_buf;
 static lv_obj_t * version_label;
 
-// --- ВСІ ФУНКЦІЇ, НЕ ПОВ'ЯЗАНІ З ВЕБ-СЕРВЕРОМ, ЗАЛИШАЮТЬСЯ ТУТ ---
+// --- Функції ---
 
 void checkForUpdates() {
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("Перевірка оновлень неможлива: немає Wi-Fi");
         return;
     }
-
     HTTPClient http;
     String url = "https://raw.githubusercontent.com/MaestroSky/esp32-c3-mini-main/main/version.txt";
-    
     Serial.println("Перевірка наявності оновлень...");
     http.begin(url);
     int httpCode = http.GET();
-
     if (httpCode == HTTP_CODE_OK) {
         latest_version = http.getString();
-        latest_version.trim(); // Видаляємо зайві пробіли або символи нового рядка
-        
+        latest_version.trim();
         Serial.printf("Поточна версія: %s\n", FIRMWARE_VERSION);
         Serial.printf("Остання версія: %s\n", latest_version.c_str());
-
         if (latest_version != FIRMWARE_VERSION && latest_version != "") {
             update_available = true;
             Serial.println("Доступна нова версія прошивки!");
@@ -138,53 +129,6 @@ void checkForUpdates() {
         Serial.printf("Помилка перевірки оновлень, код: %d\n", httpCode);
     }
     http.end();
-}
-
-void displayQrCode(lv_obj_t* parent) {
-    if (WiFi.status() != WL_CONNECTED && WiFi.getMode() != WIFI_AP) return;
-
-    String url = "http://";
-    if(WiFi.getMode() == WIFI_AP) {
-        url += WiFi.softAPIP().toString();
-    } else {
-        url += WiFi.localIP().toString();
-    }
-    
-    // Створення QR коду за допомогою локальної бібліотеки
-    uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX];
-    uint8_t tempBuffer[qrcodegen_BUFFER_LEN_MAX];
-    bool ok = qrcodegen_encodeText(url.c_str(), tempBuffer, qrcode, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN, qrcodegen_VERSION_MAX, qrcodegen_Mask_AUTO, true);
-    if (!ok) {
-        Serial.println("Помилка генерації QR коду");
-        return;
-    }
-
-    // Розміри QR-коду (ширина і висота) та розмір пікселя
-    int qr_size = qrcodegen_getSize(qrcode);
-    int pixel_size = 3; // Збільшуємо кожен піксель до 3x3
-    int canvas_size = qr_size * pixel_size;
-
-    // Створюємо буфер для LVGL канви
-    qr_buf = (lv_color_t*)malloc(LV_CANVAS_BUF_SIZE_TRUE_COLOR(canvas_size, canvas_size));
-    
-    // Створюємо саму канву
-    qr_canvas = lv_canvas_create(parent);
-    lv_canvas_set_buffer(qr_canvas, qr_buf, canvas_size, canvas_size, LV_IMG_CF_TRUE_COLOR);
-    lv_obj_align(qr_canvas, LV_ALIGN_CENTER, 0, 0); // Вирівнюємо по центру батьківського об'єкта
-    lv_canvas_fill_bg(qr_canvas, lv_color_white(), LV_OPA_COVER);
-
-    // Малюємо QR-код на канві
-    lv_draw_rect_dsc_t rect_dsc;
-    lv_draw_rect_dsc_init(&rect_dsc);
-    rect_dsc.bg_color = lv_color_black();
-    
-    for (int y = 0; y < qr_size; y++) {
-        for (int x = 0; x < qr_size; x++) {
-            if (qrcodegen_getModule(qrcode, x, y)) {
-                lv_canvas_draw_rect(qr_canvas, x * pixel_size, y * pixel_size, pixel_size, pixel_size, &rect_dsc);
-            }
-        }
-    }
 }
 
 void loadSettings() {
@@ -242,13 +186,11 @@ const lv_img_dsc_t* get_weather_icon_by_code(String icon_code) {
 void arc_event_handler(lv_event_t * e) {
     int32_t currentValue = lv_arc_get_value(ui_ControlArc);
     int32_t snappedValue = round(currentValue / 2.0) * 2;
-
     if (snappedValue != lastSnappedValue) {
         lv_arc_set_value(ui_ControlArc, snappedValue);
         if (ui_SliderLabel) {
             lv_label_set_text_fmt(ui_SliderLabel, "%d", snappedValue);
         }
-
         bool is_volume_mode = lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED);
         if (!is_volume_mode) {
             currentBrightness = map(snappedValue, 0, 100, 0, 255);
@@ -270,7 +212,6 @@ void arc_event_handler(lv_event_t * e) {
 
 void switch_event_handler(lv_event_t * e) {
     bool is_volume_mode = lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED);
-    
     if (is_volume_mode) {
         const int32_t val = 50;
         lv_arc_set_value(ui_ControlArc, val);
@@ -278,7 +219,6 @@ void switch_event_handler(lv_event_t * e) {
             lv_label_set_text_fmt(ui_SliderLabel, "%d", val);
         }
         lastSnappedValue = val;
-
         if (bleKeyboard.isConnected()) {
             for (int i = 0; i < 50; i++) {
                 bleKeyboard.write(KEY_MEDIA_VOLUME_UP);
@@ -364,17 +304,14 @@ void update_wifi_status_icon() {
 
 static void check_inactivity_timer_cb(lv_timer_t * timer) {
     uint32_t inactive_time = lv_disp_get_inactive_time(NULL);
-
     if (inactive_time >= SCREENSAVER_TIMEOUT_MS && currentScreenState != SCREENSAVER) {
         lv_scr_load(ui_Screen1);
         tft.setBrightness(51); 
-
         if(ui_SettingsPanel) {
             lv_obj_set_y(ui_SettingsPanel, -210);
             if(ui_Down) lv_obj_clear_flag(ui_Down, LV_OBJ_FLAG_HIDDEN);
             if(ui_Upp) lv_obj_add_flag(ui_Upp, LV_OBJ_FLAG_HIDDEN);
         }
-
         lv_obj_add_flag(ui_fone, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_WOLButton, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_WeatherIcon, LV_OBJ_FLAG_HIDDEN);
@@ -387,21 +324,17 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         if(ui_SettingsPanel) lv_obj_add_flag(ui_SettingsPanel, LV_OBJ_FLAG_HIDDEN);
         if(ui_Down) lv_obj_add_flag(ui_Down, LV_OBJ_FLAG_HIDDEN);
         if(ui_Upp) lv_obj_add_flag(ui_Upp, LV_OBJ_FLAG_HIDDEN);
-        
         if (ui_Screen2) {
             for (uint32_t i = 0; i < lv_obj_get_child_cnt(ui_Screen2); i++) {
                 lv_obj_add_flag(lv_obj_get_child(ui_Screen2, i), LV_OBJ_FLAG_HIDDEN);
             }
         }
-        
         lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
         lv_obj_set_style_text_color(ui_hour, lv_color_white(), 0);
         lv_obj_set_style_text_color(ui_minute, lv_color_white(), 0);
         lv_obj_set_style_text_color(ui_second, lv_color_white(), 0);
-        
         lv_obj_clear_flag(ui_screensaver_icon, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_screensaver_temp, LV_OBJ_FLAG_HIDDEN);
-
         currentScreenState = SCREENSAVER;
     }
     else if (inactive_time >= PARTIAL_DIM_TIMEOUT_MS && currentScreenState == AWAKE) {
@@ -410,7 +343,6 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
     }
     else if (inactive_time < PARTIAL_DIM_TIMEOUT_MS && currentScreenState != AWAKE) {
         tft.setBrightness(currentBrightness);
-        
         lv_obj_add_flag(ui_screensaver_icon, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_screensaver_temp, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_fone, LV_OBJ_FLAG_HIDDEN);
@@ -420,33 +352,27 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
         lv_obj_clear_flag(ui_celsius, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_date, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_city, LV_OBJ_FLAG_HIDDEN);
-        
         if(ui_SettingsPanel) {
             lv_obj_clear_flag(ui_SettingsPanel, LV_OBJ_FLAG_HIDDEN);
             lv_obj_set_y(ui_SettingsPanel, -210);
             if(ui_Down) lv_obj_clear_flag(ui_Down, LV_OBJ_FLAG_HIDDEN);
             if(ui_Upp) lv_obj_add_flag(ui_Upp, LV_OBJ_FLAG_HIDDEN);
         }
-        
         if (ui_Screen2) {
             for (uint32_t i = 0; i < lv_obj_get_child_cnt(ui_Screen2); i++) {
                 lv_obj_clear_flag(lv_obj_get_child(ui_Screen2, i), LV_OBJ_FLAG_HIDDEN);
             }
         }
-        
         lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0xFFFFFF), 0);
         if (ui_Screen1) lv_obj_set_style_bg_color(ui_Screen1, lv_color_hex(0xFFFFFF), 0);
         if (ui_Screen2) lv_obj_set_style_bg_color(ui_Screen2, lv_color_hex(0xFFFFFF), 0);
-        
         lv_obj_set_style_text_color(ui_hour, lv_color_hex(0x000000), 0);
         lv_obj_set_style_text_color(ui_minute, lv_color_hex(0x000000), 0);
         lv_obj_set_style_text_color(ui_second, lv_color_hex(0x000000), 0);
         update_wifi_status_icon();
-
         currentScreenState = AWAKE;
     }
 }
-
 
 void setup() {
     Serial.begin(115200);
@@ -472,7 +398,6 @@ void setup() {
 
     ui_init(); 
     
-    // Ініціалізація об'єктів LVGL (без змін)
     ui_screensaver_icon = lv_img_create(lv_scr_act());
     lv_img_set_zoom(ui_screensaver_icon, 320); 
     lv_obj_align(ui_screensaver_icon, LV_ALIGN_CENTER, 0, 15);
@@ -513,9 +438,8 @@ void setup() {
     lv_label_set_text(ui_city, "Loading...");
     lv_label_set_text(ui_temperature, "--");
     
-    // Підключаємось до Wi-Fi з використанням завантажених даних
     WiFi.begin(ssid.c_str(), password.c_str());
-    int wifi_retries = 20; // Спробуємо підключитись 10 секунд
+    int wifi_retries = 20;
     while (WiFi.status() != WL_CONNECTED && wifi_retries > 0) { 
       delay(500); 
       Serial.print("."); 
@@ -536,7 +460,6 @@ void setup() {
         configTime(gmtOffset_sec, dst, ntpServer);
         xTaskCreate(update_time_task, "time_task", 4096, NULL, 5, NULL);
     } else {
-        // Якщо Wi-Fi не підключився, запускаємо точку доступу для налаштування
         Serial.println("\nCould not connect to WiFi. Starting AP mode.");
         lv_label_set_text(ui_city, "AP Mode");
         lv_label_set_text(ui_temperature, "Setup");
@@ -547,16 +470,12 @@ void setup() {
         setupWebServer();
     }
     
-    // <<< ІНТЕГРАЦІЯ QR-КОДУ ТА ВЕРСІЇ ПРОШИВКИ >>>
+    // <<< ІНТЕГРАЦІЯ ВЕРСІЇ ПРОШИВКИ (БЕЗ QR-КОДУ) >>>
     if(ui_SettingsPanel) {
         // Створюємо мітку для версії прошивки
         version_label = lv_label_create(ui_SettingsPanel);
         lv_label_set_text_fmt(version_label, "Ver: %s", FIRMWARE_VERSION);
         lv_obj_align(version_label, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
-
-        // Генеруємо і показуємо QR-код
-        // Ця функція сама перевірить, чи є Wi-Fi або AP
-        displayQrCode(ui_SettingsPanel);
     }
     
     lv_timer_create(check_inactivity_timer_cb, 500, NULL);
