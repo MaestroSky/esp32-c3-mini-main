@@ -13,8 +13,10 @@
 #include "esp_bt.h"
 #include <Preferences.h>
 #include "web_server.h"
+#include "qrcodegen.h" // <-- ВАЖЛИВО: Підключаємо локальну бібліотеку
 
-#define FIRMWARE_VERSION "1.0.5"
+String latest_version = "";
+bool update_available = false;
 
 Preferences preferences;
 
@@ -99,8 +101,91 @@ BleKeyboard bleKeyboard("ESP32 Watch Control", "Misha Inc.", 100);
 bool bleKeyboardStarted = false;
 uint8_t currentBrightness = 255; 
 int lastSnappedValue = -1; 
+static lv_obj_t * qr_canvas;
+static lv_color_t * qr_buf;
+static lv_obj_t * version_label;
 
 // --- ВСІ ФУНКЦІЇ, НЕ ПОВ'ЯЗАНІ З ВЕБ-СЕРВЕРОМ, ЗАЛИШАЮТЬСЯ ТУТ ---
+
+void checkForUpdates() {
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("Перевірка оновлень неможлива: немає Wi-Fi");
+        return;
+    }
+
+    HTTPClient http;
+    String url = "https://raw.githubusercontent.com/MaestroSky/esp32-c3-mini-main/main/version.txt";
+    
+    Serial.println("Перевірка наявності оновлень...");
+    http.begin(url);
+    int httpCode = http.GET();
+
+    if (httpCode == HTTP_CODE_OK) {
+        latest_version = http.getString();
+        latest_version.trim(); // Видаляємо зайві пробіли або символи нового рядка
+        
+        Serial.printf("Поточна версія: %s\n", FIRMWARE_VERSION);
+        Serial.printf("Остання версія: %s\n", latest_version.c_str());
+
+        if (latest_version != FIRMWARE_VERSION && latest_version != "") {
+            update_available = true;
+            Serial.println("Доступна нова версія прошивки!");
+        } else {
+            update_available = false;
+            Serial.println("У вас остання версія прошивки.");
+        }
+    } else {
+        Serial.printf("Помилка перевірки оновлень, код: %d\n", httpCode);
+    }
+    http.end();
+}
+
+void displayQrCode(lv_obj_t* parent) {
+    if (WiFi.status() != WL_CONNECTED && WiFi.getMode() != WIFI_AP) return;
+
+    String url = "http://";
+    if(WiFi.getMode() == WIFI_AP) {
+        url += WiFi.softAPIP().toString();
+    } else {
+        url += WiFi.localIP().toString();
+    }
+    
+    // Створення QR коду за допомогою локальної бібліотеки
+    uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX];
+    uint8_t tempBuffer[qrcodegen_BUFFER_LEN_MAX];
+    bool ok = qrcodegen_encodeText(url.c_str(), tempBuffer, qrcode, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN, qrcodegen_VERSION_MAX, qrcodegen_Mask_AUTO, true);
+    if (!ok) {
+        Serial.println("Помилка генерації QR коду");
+        return;
+    }
+
+    // Розміри QR-коду (ширина і висота) та розмір пікселя
+    int qr_size = qrcodegen_getSize(qrcode);
+    int pixel_size = 3; // Збільшуємо кожен піксель до 3x3
+    int canvas_size = qr_size * pixel_size;
+
+    // Створюємо буфер для LVGL канви
+    qr_buf = (lv_color_t*)malloc(LV_CANVAS_BUF_SIZE_TRUE_COLOR(canvas_size, canvas_size));
+    
+    // Створюємо саму канву
+    qr_canvas = lv_canvas_create(parent);
+    lv_canvas_set_buffer(qr_canvas, qr_buf, canvas_size, canvas_size, LV_IMG_CF_TRUE_COLOR);
+    lv_obj_align(qr_canvas, LV_ALIGN_CENTER, 0, 0); // Вирівнюємо по центру батьківського об'єкта
+    lv_canvas_fill_bg(qr_canvas, lv_color_white(), LV_OPA_COVER);
+
+    // Малюємо QR-код на канві
+    lv_draw_rect_dsc_t rect_dsc;
+    lv_draw_rect_dsc_init(&rect_dsc);
+    rect_dsc.bg_color = lv_color_black();
+    
+    for (int y = 0; y < qr_size; y++) {
+        for (int x = 0; x < qr_size; x++) {
+            if (qrcodegen_getModule(qrcode, x, y)) {
+                lv_canvas_draw_rect(qr_canvas, x * pixel_size, y * pixel_size, pixel_size, pixel_size, &rect_dsc);
+            }
+        }
+    }
+}
 
 void loadSettings() {
   preferences.begin("watch-prefs", false);
@@ -442,9 +527,8 @@ void setup() {
         Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
 
-        // <<< ОНОВЛЕНО: Запускаємо веб-сервер одним рядком >>>
         setupWebServer();
-
+        checkForUpdates();
         update_wifi_status_icon();
         update_weather();
 
@@ -460,19 +544,28 @@ void setup() {
         Serial.print("AP IP address: ");
         Serial.println(WiFi.softAPIP());
         
-        // <<< ОНОВЛЕНО: Запускаємо веб-сервер одним рядком і в режимі AP >>>
         setupWebServer();
+    }
+    
+    // <<< ІНТЕГРАЦІЯ QR-КОДУ ТА ВЕРСІЇ ПРОШИВКИ >>>
+    if(ui_SettingsPanel) {
+        // Створюємо мітку для версії прошивки
+        version_label = lv_label_create(ui_SettingsPanel);
+        lv_label_set_text_fmt(version_label, "Ver: %s", FIRMWARE_VERSION);
+        lv_obj_align(version_label, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
+
+        // Генеруємо і показуємо QR-код
+        // Ця функція сама перевірить, чи є Wi-Fi або AP
+        displayQrCode(ui_SettingsPanel);
     }
     
     lv_timer_create(check_inactivity_timer_cb, 500, NULL);
     lv_timer_create([](lv_timer_t* t){ if(WiFi.status() == WL_CONNECTED) update_weather(); }, 1800000, NULL);
 }
 
-
 void loop() {
     lv_timer_handler();
 
-    // <<< ОНОВЛЕНО: Обробляємо клієнтів одним рядком >>>
     handleWebServerClient();
 
     static uint32_t last_wifi_check = 0;
