@@ -10,9 +10,14 @@
 #include "main.h"
 #include "ui/ui.h" // Підключаємо головний файл UI
 
+// <<< ДОДАНО: Заголовки для Bluetooth, Веб-сервера та збереження налаштувань >>>
 #include <BleKeyboard.h>
 #include "esp_bt.h"
+#include <WebServer.h>
+#include <Preferences.h>
 
+// Створюємо об'єкт для роботи з NVS (енергонезалежною пам'яттю)
+Preferences preferences;
 
 // Оголошення всіх ваших нових іконок погоди
 LV_IMG_DECLARE(ui_img_blizzard_png);
@@ -67,24 +72,28 @@ public:
 
 LGFX tft;
 CST816D touch(I2C_SDA, I2C_SCL, TP_RST, TP_INT);
-const char* ssid = "MaestroSkyHome";
-const char* password = "maestro19";
-const byte macAddress[] = {0x58, 0x11, 0x22, 0xAF, 0x02, 0xC5};
-const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec = 7200;
-const int   daylightOffset_sec = 3600;
 
+// <<< ОНОВЛЕНО: Змінні для налаштувань (будуть завантажуватись з пам'яті) >>>
+String ssid = "MaestroSkyHome";
+String password = "maestro19";
 String api_key = "f957aeaeed8744887eaa43ee1b5c43c6"; 
 String city = "Kherson";
+
+// Налаштування часу
+long gmtOffset_sec = 7200;
+bool daylightOffset_enabled = true; // true = ввімкнено, false = вимкнено
+const int daylightOffset_sec = 3600; // Це значення залишається константою
+
+// MAC-адреса для WoL
+byte macAddress[] = {0x58, 0x11, 0x22, 0xAF, 0x02, 0xC5};
+String macStr = "58:11:22:AF:02:C5"; // Рядкове представлення для зручності
+
+const char* ntpServer = "pool.ntp.org";
 
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[2][240 * 10];
 
-enum ScreenState {
-    AWAKE,
-    PARTIALLY_DIMMED,
-    SCREENSAVER
-};
+enum ScreenState { AWAKE, PARTIALLY_DIMMED, SCREENSAVER };
 ScreenState currentScreenState = AWAKE;
 
 const uint32_t PARTIAL_DIM_TIMEOUT_MS = 10000;
@@ -98,9 +107,170 @@ BleKeyboard bleKeyboard("ESP32 Watch Control", "Misha Inc.", 100);
 bool bleKeyboardStarted = false;
 
 uint8_t currentBrightness = 255; 
-int lastArcValue = -1; 
+int lastSnappedValue = -1; 
+
+WebServer server(80);
+
+// <<< Структура для перекладів веб-інтерфейсу >>>
+struct Translations {
+    const char* pageTitle;
+    const char* header;
+    const char* settingsLabel;
+    const char* currentCityLabel;
+    const char* langUkrainian;
+    const char* langEnglish;
+};
+
+const Translations t_uk = { "Налаштування годинника", "Налаштування годинника", "Тут будуть налаштування.", "Поточне місто:", "Українська", "English" };
+const Translations t_en = { "Watch Settings", "Watch Settings", "Settings will be here.", "Current city:", "Українська", "English" };
+String currentLanguage = "uk";
 
 void update_wifi_status_icon();
+
+// <<< ДОДАНО: Функція для завантаження налаштувань з пам'яті >>>
+void loadSettings() {
+  preferences.begin("watch-prefs", false); // Відкриваємо сховище "watch-prefs"
+  
+  // Завантажуємо налаштування. Якщо якогось ключа немає, використовується значення за замовчуванням (другий аргумент)
+  ssid = preferences.getString("ssid", ssid);
+  password = preferences.getString("password", password);
+  api_key = preferences.getString("api_key", api_key);
+  city = preferences.getString("city", city);
+  gmtOffset_sec = preferences.getLong("gmt_offset", gmtOffset_sec);
+  daylightOffset_enabled = preferences.getBool("dst_enabled", daylightOffset_enabled);
+  macStr = preferences.getString("mac_addr", macStr);
+
+  // Оновлюємо байтовий масив MAC-адреси з рядка
+  sscanf(macStr.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", 
+         &macAddress[0], &macAddress[1], &macAddress[2], &macAddress[3], &macAddress[4], &macAddress[5]);
+
+  preferences.end(); // Закриваємо сховище
+  Serial.println("Налаштування завантажено.");
+}
+
+// <<< ДОДАНО: Функція для обробки збереження налаштувань з веб-форми >>>
+void handleSave() {
+  Serial.println("Отримано запит на збереження налаштувань...");
+  
+  // Зберігаємо нові значення у глобальні змінні
+  ssid = server.arg("ssid");
+  password = server.arg("password");
+  api_key = server.arg("api_key");
+  city = server.arg("city");
+  gmtOffset_sec = server.arg("gmt_offset").toInt();
+  daylightOffset_enabled = server.hasArg("dst_enabled");
+  macStr = server.arg("mac_addr");
+
+  // Зберігаємо змінні у пам'ять
+  preferences.begin("watch-prefs", false);
+  preferences.putString("ssid", ssid);
+  preferences.putString("password", password);
+  preferences.putString("api_key", api_key);
+  preferences.putString("city", city);
+  preferences.putLong("gmt_offset", gmtOffset_sec);
+  preferences.putBool("dst_enabled", daylightOffset_enabled);
+  preferences.putString("mac_addr", macStr);
+  preferences.end();
+  
+  Serial.println("Налаштування збережено. Перезавантаження...");
+
+  // Відправляємо сторінку з повідомленням про успіх
+  String html = "<!DOCTYPE html><html><head><title>Збережено</title><meta charset='UTF-8'>";
+  html += "<style>body{font-family: sans-serif; text-align: center; padding-top: 50px; background: #f0f0f0;}</style>";
+  html += "</head><body><h1>Налаштування збережено!</h1><p>Пристрій перезавантажиться за 3 секунди, щоб застосувати зміни.</p></body></html>";
+  server.send(200, "text/html; charset=utf-8", html);
+
+  // Перезавантажуємо ESP, щоб застосувати нові налаштування Wi-Fi
+  delay(3000);
+  ESP.restart();
+}
+
+// <<< ПОВНІСТЮ ОНОВЛЕНО: Функція, що генерує веб-сторінку з формою налаштувань >>>
+void handleRoot() {
+  // Перевірка мови (залишається без змін)
+  if (server.hasArg("lang")) {
+    String lang = server.arg("lang");
+    if (lang == "en" || lang == "uk") {
+      currentLanguage = lang;
+    }
+  }
+  const Translations* t;
+  if (currentLanguage == "uk") {
+    t = &t_uk;
+  } else {
+    t = &t_en;
+  }
+
+  // Початок HTML
+  String html = "<!DOCTYPE html><html><head><title>";
+  html += t->pageTitle;
+  html += "</title><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1'>";
+  // Стилі для гарного вигляду
+  html += "<style>"
+          "body{font-family: sans-serif; background: #f0f0f0; margin: 0;}"
+          "a{color: #007bff; text-decoration: none;}"
+          ".container{max-width: 800px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}"
+          "h1,h2{text-align: center; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0;}"
+          "form{display: flex; flex-direction: column; gap: 15px;}"
+          ".form-group{display: flex; flex-direction: column;}"
+          "label{margin-bottom: 5px; font-weight: bold; color: #555;}"
+          "input, select{padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;}"
+          ".cb-label{display: flex; align-items: center;}"
+          "input[type=checkbox]{width: auto; margin-right: 10px; transform: scale(1.2);}"
+          "button{padding: 12px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 1.1em; cursor: pointer; margin-top: 10px;}"
+          "button:hover{background: #0056b3;}"
+          ".lang-switch{text-align: center; margin-bottom: 20px;}"
+          "</style>";
+  html += "</head><body><div class='container'>";
+  
+  html += "<h1>";
+  html += t->header;
+  html += "</h1>";
+  
+  // Перемикач мови
+  html += "<div class='lang-switch'><a href='/?lang=uk'>";
+  html += t->langUkrainian;
+  html += "</a> | <a href='/?lang=en'>";
+  html += t->langEnglish;
+  html += "</a></div>";
+  
+  // Форма для налаштувань
+  html += "<form action='/save' method='POST'>";
+
+  // --- Секція 1: Базові налаштування ---
+  html += "<h2>Базові налаштування</h2>";
+  html += "<div class='form-group'><label for='ssid'>Назва мережі Wi-Fi (SSID)</label><input type='text' id='ssid' name='ssid' value='" + ssid + "'></div>";
+  html += "<div class='form-group'><label for='password'>Пароль Wi-Fi</label><input type='password' id='password' name='password' value='" + password + "'></div>";
+  html += "<div class='form-group'><label for='api_key'>Ключ API для погоди</label><input type='text' id='api_key' name='api_key' value='" + api_key + "'></div>";
+  
+  // --- Секція 2: Персоналізація ---
+  html += "<h2>Персоналізація</h2>";
+  html += "<div class='form-group'><label for='city'>Місто для погоди</label><input type='text' id='city' name='city' value='" + city + "'></div>";
+  html += "<div class='form-group'><label for='mac_addr'>MAC-адреса для Wake-on-LAN</label><input type='text' id='mac_addr' name='mac_addr' value='" + macStr + "'></div>";
+  
+  html += "<div class='form-group'><label for='gmt_offset'>Часовий пояс</label><select id='gmt_offset' name='gmt_offset'>";
+  // Генеруємо опції для часових поясів
+  int offsets[] = {-43200, -39600, -36000, -28800, -25200, -21600, -18000, -14400, -10800, -3600, 0, 3600, 7200, 10800, 14400, 18000, 21600, 25200, 28800, 32400, 34200, 39600, 46800};
+  String zones[] = {"(GMT-12)","(GMT-11)","(GMT-10) Hawaii","(GMT-8) Los Angeles","(GMT-7) Denver","(GMT-6) Chicago","(GMT-5) New York","(GMT-4)","(GMT-3) Buenos Aires","(GMT-1)","(GMT 0) London","(GMT+1) Berlin","(GMT+2) Kyiv","(GMT+3) Moscow","(GMT+4)","(GMT+5)","(GMT+6)","(GMT+7)","(GMT+8) Hong Kong","(GMT+9) Tokyo","(GMT+9:30)","(GMT+11)","(GMT+13)"};
+  for(unsigned int i=0; i < sizeof(offsets)/sizeof(int); i++){
+    html += "<option value='" + String(offsets[i]) + "'";
+    if(offsets[i] == gmtOffset_sec) html += " selected";
+    html += ">" + zones[i] + "</option>";
+  }
+  html += "</select></div>";
+  
+  html += "<div class='form-group'><label class='cb-label'><input type='checkbox' name='dst_enabled'";
+  if(daylightOffset_enabled) html += " checked";
+  html += "> Автоматичний перехід на літній час</label></div>";
+  
+  // --- Кнопка Зберегти ---
+  html += "<button type='submit'>Зберегти і перезавантажити</button>";
+  
+  html += "</form>";
+  html += "</div></body></html>";
+
+  server.send(200, "text/html; charset=utf-8", html);
+}
 
 
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
@@ -142,39 +312,62 @@ const lv_img_dsc_t* get_weather_icon_by_code(String icon_code) {
 
 void arc_event_handler(lv_event_t * e) {
     int32_t currentValue = lv_arc_get_value(ui_ControlArc);
-    bool is_volume_mode = lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED);
+    int32_t snappedValue = round(currentValue / 2.0) * 2;
 
-    if (!is_volume_mode) {
-        currentBrightness = map(currentValue, 0, 100, 0, 255);
-        tft.setBrightness(currentBrightness);
+    if (snappedValue != lastSnappedValue) {
+        lv_arc_set_value(ui_ControlArc, snappedValue);
         if (ui_SliderLabel) {
-            lv_label_set_text_fmt(ui_SliderLabel, "%d", currentValue);
+            lv_label_set_text_fmt(ui_SliderLabel, "%d", snappedValue);
         }
-    } else {
-        if (bleKeyboard.isConnected()) {
-            if (lastArcValue != -1) { 
-                if (currentValue > lastArcValue) {
-                    bleKeyboard.write(KEY_MEDIA_VOLUME_UP);
-                } else if (currentValue < lastArcValue) {
-                    bleKeyboard.write(KEY_MEDIA_VOLUME_DOWN);
+
+        bool is_volume_mode = lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED);
+        if (!is_volume_mode) {
+            currentBrightness = map(snappedValue, 0, 100, 0, 255);
+            tft.setBrightness(currentBrightness);
+        } else {
+            if (bleKeyboard.isConnected()) {
+                if (lastSnappedValue != -1) { 
+                    if (snappedValue > lastSnappedValue) {
+                        bleKeyboard.write(KEY_MEDIA_VOLUME_UP);
+                    } else if (snappedValue < lastSnappedValue) {
+                        bleKeyboard.write(KEY_MEDIA_VOLUME_DOWN);
+                    }
                 }
             }
-            lastArcValue = currentValue;
         }
+        lastSnappedValue = snappedValue;
     }
 }
 
 void switch_event_handler(lv_event_t * e) {
     bool is_volume_mode = lv_obj_has_state(ui_ModeSwitch, LV_STATE_CHECKED);
-    lastArcValue = -1;
-
+    
     if (is_volume_mode) {
-        lv_label_set_text(ui_SliderLabel, "Гучність");
-        lv_arc_set_value(ui_ControlArc, 50);
+        const int32_t val = 50;
+        lv_arc_set_value(ui_ControlArc, val);
+        if (ui_SliderLabel) {
+            lv_label_set_text_fmt(ui_SliderLabel, "%d", val);
+        }
+        lastSnappedValue = val;
+
+        if (bleKeyboard.isConnected()) {
+            for (int i = 0; i < 50; i++) {
+                bleKeyboard.write(KEY_MEDIA_VOLUME_UP);
+                delay(10);
+            }
+            for (int i = 0; i < 25; i++) {
+                bleKeyboard.write(KEY_MEDIA_VOLUME_DOWN);
+                delay(10);
+            }
+        }
     } else {
         int brightness_percent = map(currentBrightness, 0, 255, 0, 100);
-        lv_arc_set_value(ui_ControlArc, brightness_percent);
-        lv_label_set_text_fmt(ui_SliderLabel, "%d", brightness_percent);
+        int32_t val = (brightness_percent / 2) * 2;
+        lv_arc_set_value(ui_ControlArc, val);
+        if (ui_SliderLabel) {
+            lv_label_set_text_fmt(ui_SliderLabel, "%d", val);
+        }
+        lastSnappedValue = val;
     }
 }
 
@@ -325,8 +518,13 @@ void update_wifi_status_icon() {
     }
 }
 
+
+// <<< ПОВНІСТЮ ОНОВЛЕНА ФУНКЦІЯ SETUP >>>
 void setup() {
     Serial.begin(115200);
+
+    // Завантажуємо налаштування перед усім іншим
+    loadSettings();
 
     btStop(); 
     
@@ -348,6 +546,7 @@ void setup() {
 
     ui_init(); 
     
+    // Ініціалізація об'єктів LVGL (без змін)
     ui_screensaver_icon = lv_img_create(lv_scr_act());
     lv_img_set_zoom(ui_screensaver_icon, 320); 
     lv_obj_align(ui_screensaver_icon, LV_ALIGN_CENTER, 0, 15);
@@ -367,10 +566,12 @@ void setup() {
     if (ui_ControlArc) {
         lv_obj_add_event_cb(ui_ControlArc, arc_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
         int initialArcValue = map(currentBrightness, 0, 255, 0, 100);
-        lv_arc_set_value(ui_ControlArc, initialArcValue);
+        int32_t val = round(initialArcValue / 2.0) * 2;
+        lv_arc_set_value(ui_ControlArc, val);
         if(ui_SliderLabel) {
-            lv_label_set_text_fmt(ui_SliderLabel, "%d", initialArcValue);
+            lv_label_set_text_fmt(ui_SliderLabel, "%d", val);
         }
+        lastSnappedValue = val;
     }
     
     if(ui_ModeSwitch) {
@@ -386,21 +587,55 @@ void setup() {
     lv_label_set_text(ui_city, "Loading...");
     lv_label_set_text(ui_temperature, "--");
     
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
-    Serial.println("\nWiFi Connected!");
-    update_wifi_status_icon();
-    update_weather();
-    
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-    xTaskCreate(update_time_task, "time_task", 4096, NULL, 5, NULL);
+    // Підключаємось до Wi-Fi з використанням завантажених даних
+    WiFi.begin(ssid.c_str(), password.c_str());
+    int wifi_retries = 20; // Спробуємо підключитись 10 секунд
+    while (WiFi.status() != WL_CONNECTED && wifi_retries > 0) { 
+      delay(500); 
+      Serial.print("."); 
+      wifi_retries--;
+    }
+
+    // Якщо Wi-Fi підключено, продовжуємо як зазвичай
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\nWiFi Connected!");
+        Serial.print("IP Address: ");
+        Serial.println(WiFi.localIP());
+
+        // Запускаємо сервер
+        server.on("/", HTTP_GET, handleRoot); // Обробник головної сторінки
+        server.on("/save", HTTP_POST, handleSave); // Обробник для збереження форми
+        server.begin();
+
+        update_wifi_status_icon();
+        update_weather();
+
+        int dst = daylightOffset_enabled ? daylightOffset_sec : 0;
+        configTime(gmtOffset_sec, dst, ntpServer);
+        xTaskCreate(update_time_task, "time_task", 4096, NULL, 5, NULL);
+    } else {
+        // Якщо Wi-Fi не підключився, запускаємо точку доступу для налаштування
+        Serial.println("\nCould not connect to WiFi. Starting AP mode.");
+        lv_label_set_text(ui_city, "AP Mode");
+        lv_label_set_text(ui_temperature, "Setup");
+        WiFi.softAP("Watch_Setup", "12345678");
+        Serial.print("AP IP address: ");
+        Serial.println(WiFi.softAPIP());
+        
+        server.on("/", HTTP_GET, handleRoot);
+        server.on("/save", HTTP_POST, handleSave);
+        server.begin();
+    }
     
     lv_timer_create(check_inactivity_timer_cb, 500, NULL);
-    lv_timer_create([](lv_timer_t* t){ update_weather(); }, 1800000, NULL);
+    lv_timer_create([](lv_timer_t* t){ if(WiFi.status() == WL_CONNECTED) update_weather(); }, 1800000, NULL);
 }
+
 
 void loop() {
     lv_timer_handler();
+
+    server.handleClient();
 
     static uint32_t last_wifi_check = 0;
     if (millis() - last_wifi_check > 2000) {
