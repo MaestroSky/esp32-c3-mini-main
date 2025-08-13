@@ -188,6 +188,7 @@ void loadSettings() {
   gmtOffset_sec = preferences.getLong("gmt_offset", gmtOffset_sec);
   daylightOffset_enabled = preferences.getBool("dst_enabled", daylightOffset_enabled);
   macStr = preferences.getString("mac_addr", macStr);
+  currentBrightness = preferences.getUChar("brightness", 255);
   sscanf(macStr.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", 
          &macAddress[0], &macAddress[1], &macAddress[2], &macAddress[3], &macAddress[4], &macAddress[5]);
   preferences.end();
@@ -243,6 +244,10 @@ void arc_event_handler(lv_event_t * e) {
         if (!is_volume_mode) {
             currentBrightness = map(snappedValue, 0, 100, 0, 255);
             tft.setBrightness(currentBrightness);
+            // Зберігаємо яскравість в Preferences
+            preferences.begin("watch-prefs", false);
+            preferences.putUChar("brightness", currentBrightness);
+            preferences.end();
         } else {
             if (bleKeyboard.isConnected()) {
                 if (lastSnappedValue != -1) { 
@@ -354,7 +359,7 @@ static void check_inactivity_timer_cb(lv_timer_t * timer) {
     uint32_t inactive_time = lv_disp_get_inactive_time(NULL);
     if (inactive_time >= SCREENSAVER_TIMEOUT_MS && currentScreenState != SCREENSAVER) {
         lv_scr_load(ui_Screen1);
-        tft.setBrightness(51); 
+        tft.setBrightness(currentBrightness / 5);
         if(ui_SettingsPanel) {
             lv_obj_set_y(ui_SettingsPanel, -210);
             if(ui_Down) lv_obj_clear_flag(ui_Down, LV_OBJ_FLAG_HIDDEN);
@@ -428,6 +433,7 @@ void setup() {
     loadSettings();
     btStop(); 
     
+    tft.setBrightness(currentBrightness);
     tft.init(); tft.initDMA(); tft.startWrite();
     touch.begin(); 
     tft.setBrightness(currentBrightness);
